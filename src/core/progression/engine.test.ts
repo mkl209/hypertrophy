@@ -1,0 +1,72 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { recommend, type Ctx } from './engine.ts';
+import { assessReadiness } from './readiness.ts';
+import { allowedStrategies, validateProgression } from './strategies.ts';
+import { FINDING_BY_ID } from '../../research/findings.ts';
+import type { PreWorkoutCheckIn } from '../types/index.ts';
+
+const ci = (o: Partial<PreWorkoutCheckIn> = {}): PreWorkoutCheckIn => ({ id: 'c', date: 'd', sleepHours: 8, sleepQuality: 4, fatigue: 2, soreness: 2, recovery: 4, stress: 2, mentalFatigue: 2, motivation: 4, readiness: 4, jointDiscomfort: 1, jointPain: 1, unwell: false, hydration: 3, createdAt: 0, ...o });
+const sess = (reps: number[], rir = 2, weight = 60) => ({ date: 'x', sets: reps.map(r => ({ weight, reps: r, rir })) });
+const ctx = (o: Partial<Ctx> = {}): Ctx => ({ progression: { strategy: 'double' }, level: 'intermediate', prescribed: { sets: 3, repMin: 8, repMax: 12, rir: 2 }, sessions: [sess([10, 10, 9])], readiness: assessReadiness(ci()), weekIndex: 0, totalWeeks: 5, ...o });
+
+test('spec example: reps before load', () => {
+  const r = recommend(ctx());
+  assert.equal(r.action, 'add_reps');
+  assert.deepEqual(r.targets.map(t => [t.weight, t.repMin, t.repMax]), [[60, 10, 11], [60, 10, 11], [60, 9, 10]]);
+  assert.ok(r.reasons.length > 0 && r.research.every(id => FINDING_BY_ID.has(id)));
+});
+test('top of range with good readiness suggests a load increase without a number', () => {
+  const r = recommend(ctx({ sessions: [sess([12, 12, 12])] }));
+  assert.equal(r.action, 'increase_load');
+  assert.equal(r.targets[0].weight, null);
+  assert.deepEqual([r.targets[0].repMin, r.targets[0].repMax], [8, 9]);
+});
+test('same performance but poor readiness does not blindly progress', () => {
+  const bad = assessReadiness(ci({ sleepHours: 4.5, stress: 5, mentalFatigue: 5, jointDiscomfort: 4 }));
+  assert.equal(bad.level, 'low');
+  const r = recommend(ctx({ sessions: [sess([12, 12, 12])], readiness: bad }));
+  assert.equal(r.action, 'maintain');
+  assert.equal(r.targets[0].weight, 60);
+});
+test('one bad night alone is only a minor flag', () => {
+  const r = assessReadiness(ci({ sleepHours: 5 }));
+  assert.equal(r.level, 'moderate');
+  assert.equal(recommend(ctx({ sessions: [sess([12, 12, 12])], readiness: r })).action, 'increase_load');
+});
+test('joint pain or illness blocks progression and advises caution', () => {
+  const r = recommend(ctx({ sessions: [sess([12, 12, 12])], readiness: assessReadiness(ci({ jointPain: 4 })) }));
+  assert.equal(r.action, 'hold_caution');
+  assert.ok(r.flags.includes('safety'));
+});
+test('underperformance holds the load and is flagged when persistent', () => {
+  const r = recommend(ctx({ sessions: [sess([7, 7, 6]), sess([9, 9, 8]), sess([11, 10, 10])] }));
+  assert.equal(r.action, 'maintain');
+  assert.ok(r.flags.includes('consistent-underperformance'));
+  assert.ok(r.reasons.some(x => x.includes('not the automatic answer')));
+});
+test('sets harder than prescribed RIR hold the load; last-session feedback can too', () => {
+  assert.equal(recommend(ctx({ sessions: [sess([12, 12, 12], 0)] })).action, 'maintain');
+  assert.equal(recommend(ctx({ sessions: [sess([12, 12, 12])], lastFeedback: { difficulty: 'hard', fatigue: 3, performance: 'met' } })).action, 'maintain');
+});
+test('strategies: manual, rep and load', () => {
+  assert.equal(recommend(ctx({ progression: { strategy: 'manual' } })).action, 'manual');
+  assert.equal(recommend(ctx({ progression: { strategy: 'rep' }, sessions: [sess([12, 12, 12])] })).action, 'maintain');
+  assert.equal(recommend(ctx({ progression: { strategy: 'load' }, sessions: [sess([9, 9, 9])] })).action, 'increase_load');
+  assert.equal(recommend(ctx({ sessions: [] })).action, 'start');
+});
+test('volume progression adds sets only when recovery allows, and deloads', () => {
+  const v = { strategy: 'volume' as const, volume: { weeklySetChange: 1, maxExtraSets: 2, deloadLastWeek: true } };
+  const up = recommend(ctx({ progression: v, weekIndex: 2 }));
+  assert.equal(up.sets, 5); assert.equal(up.setsChange, 'increase'); assert.equal(up.targets.length, 5);
+  const held = recommend(ctx({ progression: v, weekIndex: 2, sessions: [sess([7, 7, 6])] }));
+  assert.equal(held.sets, 3); assert.equal(held.setsChange, 'held');
+  const d = recommend(ctx({ progression: v, weekIndex: 4 }));
+  assert.equal(d.setsChange, 'deload'); assert.equal(d.sets, 2);
+});
+test('beginners cannot select volume progression', () => {
+  assert.ok(!allowedStrategies('beginner').includes('volume'));
+  assert.ok(validateProgression('beginner', { strategy: 'volume', volume: { weeklySetChange: 1, maxExtraSets: 2, deloadLastWeek: false } }));
+  assert.equal(validateProgression('intermediate', { strategy: 'volume', volume: { weeklySetChange: 1, maxExtraSets: 2, deloadLastWeek: false } }), null);
+  assert.ok(validateProgression('advanced', { strategy: 'volume', volume: { weeklySetChange: 5, maxExtraSets: 2, deloadLastWeek: false } }));
+});

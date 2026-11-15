@@ -6,9 +6,10 @@ import Settings from './features/settings/Settings.tsx';
 import Programme from './features/programme/Programme.tsx';
 import Exercises from './features/exercises/Exercises.tsx';
 import Workout from './features/workout/Workout.tsx';
+import Research from './features/research/Research.tsx';
 import Dashboard from './features/dashboard/Dashboard.tsx';
 
-const SECTIONS = ['Dashboard','Programme','Calendar','Workout','Exercises','Nutrition','Analytics','Settings'] as const;
+const SECTIONS = ['Dashboard','Programme','Calendar','Workout','Exercises','Nutrition','Analytics','Research','Settings'] as const;
 type Section = typeof SECTIONS[number];
 const fromHash = (): Section => (SECTIONS.find(s => s.toLowerCase() === location.hash.slice(2)) ?? 'Dashboard');
 
@@ -38,7 +39,7 @@ export default function App() {
         ))}
       </nav>
       <main>
-        {section === 'Settings' ? <Settings settings={settings} /> : section === 'Programme' ? <Programme /> : section === 'Exercises' ? <Exercises /> : section === 'Workout' ? <Workout /> : section === 'Dashboard' ? <Dashboard /> : (
+        {section === 'Settings' ? <Settings settings={settings} /> : section === 'Programme' ? <Programme /> : section === 'Exercises' ? <Exercises /> : section === 'Research' ? <Research level={settings.experience} /> : section === 'Workout' ? <Workout /> : section === 'Dashboard' ? <Dashboard /> : (
           <div className="card">
             <h2>{section}</h2>
             <p className="muted">Today is {todayISO()}. This section is built in a later phase.</p>

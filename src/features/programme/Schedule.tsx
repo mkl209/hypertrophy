@@ -4,6 +4,7 @@ import { db } from '../../db/db.ts';
 import { addDays, diffDays, startOfWeekMonday, todayISO, weekdayMon0, isValidISODate } from '../../core/calendar/dates.ts';
 import type { ScheduledWorkout, WorkoutTemplate } from '../../core/types/index.ts';
 import { DAYS } from '../../ui/util.ts';
+import { describeProgression } from '../../core/progression/strategies.ts';
 
 export function WorkoutCard({ w, t, today, actions }: { w: ScheduledWorkout; t?: WorkoutTemplate; today: string; actions?: boolean }) {
   const [moving, setMoving] = useState(false);
@@ -48,7 +49,7 @@ export default function Schedule({ selected, onSelect }: { selected: string; onS
       <div className="tabs">{mesos.map(m => <button key={m.id} aria-current={m.id === meso.id ? 'page' : undefined} onClick={() => onSelect(m.id)}>{m.name} <span className="muted">{m.weeks}w</span></button>)}</div>
       <div className="card">
         <div className="row" style={{ justifyContent: 'space-between' }}>
-          <div><h2 style={{ margin: 0 }}>{meso.name}</h2><span className="muted">Starts {meso.startDate} · {meso.weeks} weeks · {work.length} sessions · {done} completed · {meso.pattern}</span></div>
+          <div><h2 style={{ margin: 0 }}>{meso.name}</h2><span className="muted">Starts {meso.startDate} · {meso.weeks} weeks · {work.length} sessions · {done} completed · {meso.pattern}</span><div className="muted sm2">{describeProgression(meso.progression)}</div></div>
           <div className="row"><button className="btn ghost" onClick={() => db.mesocycles.update(meso.id, { status: 'completed' })}>Mark complete</button>
             <button className="btn ghost" onClick={() => { if (confirm('Archive this block? Its data is kept.')) db.mesocycles.update(meso.id, { status: 'archived' }); }}>Archive</button></div>
         </div>

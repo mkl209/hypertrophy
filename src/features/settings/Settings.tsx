@@ -1,5 +1,6 @@
 import { updateSettings } from '../../db/db.ts';
-import type { ExperienceLevel, UserSettings } from '../../core/types/index.ts';
+import type { ExperienceLevel, Strategy, UserSettings } from '../../core/types/index.ts';
+import { STRATEGY_LABEL, allowedStrategies } from '../../core/progression/strategies.ts';
 
 const LEVEL_HELP: Record<ExperienceLevel, string> = {
   beginner: 'Simple progressive overload and stable programmes. Volume periodisation is not offered.',
@@ -8,13 +9,15 @@ const LEVEL_HELP: Record<ExperienceLevel, string> = {
 };
 
 export default function Settings({ settings: s }: { settings: UserSettings }) {
+  const allowed = allowedStrategies(s.experience);
+  const strat = allowed.includes(s.defaultStrategy ?? 'double') ? (s.defaultStrategy ?? 'double') : 'double';
   return (
     <>
       <div className="card">
         <h2>Training profile</h2>
         <div className="row">
           <label>Experience level
-            <select value={s.experience} onChange={e => updateSettings({ experience: e.target.value as ExperienceLevel })}>
+            <select value={s.experience} onChange={e => { const lv = e.target.value as ExperienceLevel; updateSettings({ experience: lv, ...(allowedStrategies(lv).includes(s.defaultStrategy ?? 'double') ? {} : { defaultStrategy: 'double' as Strategy }) }); }}>
               <option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option>
             </select>
           </label>
@@ -25,6 +28,7 @@ export default function Settings({ settings: s }: { settings: UserSettings }) {
           </label>
         </div>
         <p className="muted">{LEVEL_HELP[s.experience]}</p>
+        <label>Default progression for new blocks<select value={strat} onChange={e => updateSettings({ defaultStrategy: e.target.value as Strategy })}>{allowed.map(k => <option key={k} value={k}>{STRATEGY_LABEL[k]}</option>)}</select></label>
         <label style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <input type="checkbox" checked={s.recommendationsEnabled} onChange={e => updateSettings({ recommendationsEnabled: e.target.checked })} />
           Show progression recommendations

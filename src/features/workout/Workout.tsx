@@ -4,6 +4,7 @@ import { db, newId } from '../../db/db.ts';
 import { addDays, todayISO } from '../../core/calendar/dates.ts';
 import { previousSets } from '../../core/workout/stats.ts';
 import type { ScheduledWorkout, WorkoutDraft } from '../../core/types/index.ts';
+import type { Rec } from '../../core/progression/engine.ts';
 import CheckIn from './CheckIn.tsx';
 import Feed from './Feed.tsx';
 import Logger from './Logger.tsx';
@@ -42,6 +43,8 @@ export default function Workout() {
     };
     setMsg(''); setDraft(d);
   };
+  const applyRec = (exId: string, rec: Rec) => update(d => ({ ...d, exercises: d.exercises.map(e => e.id !== exId ? e : { ...e, prescribed: { ...e.prescribed, sets: rec.sets },
+    list: Array.from({ length: rec.sets }, (_, i) => { const old = e.list[i]; const t = rec.targets[i]; return { id: old?.id ?? newId(), kind: 'working' as const, weight: t && t.weight !== null ? String(t.weight) : old?.weight ?? '', reps: t ? String(t.repMin) : old?.reps ?? '', rir: '', done: false }; }) }) }));
   const discard = async () => { if (confirm('Discard this workout in progress?')) { await db.drafts.delete('current'); setDraft(null); } };
   const tname = (id: string) => templates.find(t => t.id === id)?.name ?? 'Workout';
 
@@ -49,7 +52,7 @@ export default function Workout() {
     <>
       <div className="row" style={{ justifyContent: 'space-between' }}><strong>{draft.templateName} · {draft.date}</strong><button className="btn ghost sm" onClick={discard}>Discard</button></div>
       {draft.stage === 'checkin' && <CheckIn date={draft.date} scheduledId={draft.scheduledId} onDone={c => update(d => ({ ...d, checkin: c, stage: 'feed' }))} />}
-      {draft.stage === 'feed' && <Feed d={draft} prev={prev} unit={unit} onStart={() => update(d => ({ ...d, stage: 'log' }))} onBack={() => update(d => ({ ...d, stage: 'checkin' }))} />}
+      {draft.stage === 'feed' && <Feed d={draft} history={history} exercises={exercises} level={settings.experience} enabled={settings.recommendationsEnabled} defaultStrategy={settings.defaultStrategy ?? 'double'} unit={unit} onApply={applyRec} onStart={() => update(d => ({ ...d, stage: 'log' }))} onBack={() => update(d => ({ ...d, stage: 'checkin' }))} />}
       {draft.stage === 'log' && <Logger d={draft} setD={update} prev={prev} exercises={exercises} unit={unit} onFinish={() => update(d => ({ ...d, stage: 'finish' }))} />}
       {draft.stage === 'finish' && <Finish d={draft} history={history} unit={unit} onBack={() => update(d => ({ ...d, stage: 'log' }))} onSaved={() => { setDraft(null); setMsg('Workout saved.'); setTab('History'); }} />}
     </>
