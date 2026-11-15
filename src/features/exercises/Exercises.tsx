@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, newId } from '../../db/db.ts';
 import { EQUIPMENT, type Exercise } from '../../core/types/index.ts';
-import { num, toggle } from '../../ui/util.ts';
+import { num } from '../../ui/util.ts';
+import MultiSelect from '../../ui/MultiSelect.tsx';
 
 const blank = (): Exercise => ({ id: newId(), name: '', mechanic: 'compound', laterality: 'bilateral', equipment: [], primaryMuscles: [], secondaryMuscles: [],
   defaults: { repMin: 8, repMax: 12, rir: 2, restSec: 120, sets: 3, increment: 2.5 }, archived: false, builtIn: false, createdAt: Date.now(), updatedAt: Date.now() });
@@ -36,12 +37,29 @@ export default function Exercises() {
         <label>Type<select value={edit.mechanic} onChange={e => setEdit({ ...edit, mechanic: e.target.value as Exercise['mechanic'] })}><option value="compound">Compound</option><option value="isolation">Isolation</option></select></label>
         <label>Sides<select value={edit.laterality} onChange={e => setEdit({ ...edit, laterality: e.target.value as Exercise['laterality'] })}><option value="bilateral">Bilateral</option><option value="unilateral">Unilateral</option></select></label>
       </div>
-      <h3>Equipment</h3>
-      <div className="row">{EQUIPMENT.map(q2 => <label key={q2} className="chk"><input type="checkbox" checked={edit.equipment.includes(q2)} onChange={() => setEdit({ ...edit, equipment: toggle(edit.equipment, q2) })} />{q2}</label>)}</div>
-      <h3>Primary muscles</h3>
-      <div className="row">{muscles.map(m => <label key={m.id} className="chk"><input type="checkbox" checked={edit.primaryMuscles.includes(m.id)} onChange={() => setEdit({ ...edit, primaryMuscles: toggle(edit.primaryMuscles, m.id), secondaryMuscles: edit.secondaryMuscles.filter(x => x !== m.id) })} />{m.name}</label>)}</div>
-      <h3>Secondary muscles</h3>
-      <div className="row">{muscles.filter(m => !edit.primaryMuscles.includes(m.id)).map(m => <label key={m.id} className="chk"><input type="checkbox" checked={edit.secondaryMuscles.includes(m.id)} onChange={() => setEdit({ ...edit, secondaryMuscles: toggle(edit.secondaryMuscles, m.id) })} />{m.name}</label>)}</div>
+      <div className="row">
+        <MultiSelect
+          label="Equipment"
+          placeholder="Choose equipment"
+          options={EQUIPMENT.map(x => ({ value: x, label: x }))}
+          selected={edit.equipment}
+          onChange={next => setEdit({ ...edit, equipment: next as Exercise['equipment'] })}
+        />
+        <MultiSelect
+          label="Primary muscles"
+          placeholder="Choose primary muscles"
+          options={muscles.map(m => ({ value: m.id, label: m.name }))}
+          selected={edit.primaryMuscles}
+          onChange={next => setEdit({ ...edit, primaryMuscles: next, secondaryMuscles: edit.secondaryMuscles.filter(x => !next.includes(x)) })}
+        />
+        <MultiSelect
+          label="Secondary muscles"
+          placeholder="Choose secondary muscles"
+          options={muscles.filter(m => !edit.primaryMuscles.includes(m.id)).map(m => ({ value: m.id, label: m.name }))}
+          selected={edit.secondaryMuscles}
+          onChange={next => setEdit({ ...edit, secondaryMuscles: next })}
+        />
+      </div>
       <h3>Defaults (templates can override these)</h3>
       <div className="row">
         <label>Sets<input type="number" min={1} value={edit.defaults.sets ?? 3} onChange={e => setDef('sets', num(e.target.value, 3))} /></label>
