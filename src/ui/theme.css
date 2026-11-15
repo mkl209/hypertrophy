@@ -260,6 +260,39 @@ details summary:hover { color:var(--accent) }
 .ms-empty { margin:6px 8px }
 .ms-clear { width:100%; margin-top:4px }
 
+/* ---------- compact check-in (two-column grid, sliders + 1-5 button groups) ---------- */
+.ci-intro { margin:0 0 2px }
+.ci-sec { display:flex; align-items:center; gap:10px; margin:12px 0 8px; font-size:.7rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); font-weight:700 }
+.ci-sec::after { content:''; flex:1; height:1px; background:var(--border) }
+.ci-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr)); gap:10px 22px; align-items:start }
+.ci-wide { grid-column:1 / -1; margin:0 }
+.ci-field { display:flex; flex-direction:column; gap:5px; min-width:0 }
+.ci-field input[type=number], .ci-field input[type=text] { width:100% }
+.ci-head { display:flex; justify-content:space-between; align-items:baseline; gap:8px }
+.ci-label { font-size:.7rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:650 }
+.ci-val { font-size:.85rem; font-weight:700 }
+.ci-ends { display:flex; justify-content:space-between; gap:8px; font-size:.68rem; color:var(--muted); line-height:1.2 }
+.ci-toggle { align-self:center }
+
+/* segmented 1-5 buttons (native radios underneath, so arrow keys work) */
+.seg-group { display:grid; grid-template-columns:repeat(5,1fr); gap:3px; padding:3px; background:var(--inset); border:1px solid var(--border); border-radius:var(--radius-sm) }
+.seg { position:relative; display:block; text-transform:none; letter-spacing:0; font-size:.85rem; font-weight:600; color:var(--muted); cursor:pointer }
+.seg input[type=radio] { position:absolute; inset:0; width:100%; height:100%; margin:0; opacity:0; cursor:pointer }
+.seg span { display:grid; place-items:center; min-height:26px; border-radius:6px; transition:background-color var(--t) var(--ease), color var(--t) var(--ease) }
+.seg:hover span { background:var(--raised); color:var(--text) }
+.seg input:checked + span { background:var(--accent); color:#fff }
+.seg input:focus-visible + span { outline:2px solid var(--focus); outline-offset:1px }
+
+/* compact slider: solid accent fill up to the thumb */
+input[type=range].ci-range { -webkit-appearance:none; appearance:none; width:100%; height:22px; min-height:22px; margin:0; padding:0; background:transparent; cursor:pointer }
+input[type=range].ci-range:focus, input[type=range].ci-range:focus-visible { outline:none; box-shadow:none }
+input[type=range].ci-range::-webkit-slider-runnable-track { height:4px; border-radius:99px; background:linear-gradient(to right, var(--accent) var(--p), var(--border) var(--p)) }
+input[type=range].ci-range::-moz-range-track { height:4px; border-radius:99px; background:linear-gradient(to right, var(--accent) var(--p), var(--border) var(--p)) }
+input[type=range].ci-range::-webkit-slider-thumb { -webkit-appearance:none; box-sizing:border-box; width:16px; height:16px; margin-top:-6px; border-radius:50%; background:#fff; border:2px solid var(--accent) }
+input[type=range].ci-range::-moz-range-thumb { width:12px; height:12px; border-radius:50%; background:#fff; border:2px solid var(--accent) }
+input[type=range].ci-range:focus-visible::-webkit-slider-thumb { box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent) }
+input[type=range].ci-range:focus-visible::-moz-range-thumb { box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent) }
+
 /* ---------- optional icon-only sidebar: add class "rail" to the .app element ---------- */
 @media (min-width:761px) {
   .app.rail { grid-template-columns:60px minmax(0,1fr) }
@@ -280,6 +313,10 @@ details summary:hover { color:var(--accent) }
   input[type=checkbox].switch::before { width:20px; height:20px }
   input[type=checkbox].switch:checked::before { transform:translateX(18px) }
   .setrow input, .setrow select, .setrow .btn { min-height:48px }
+  .seg span { min-height:40px }
+  input[type=range].ci-range { height:32px; min-height:32px }
+  input[type=range].ci-range::-webkit-slider-thumb { width:22px; height:22px; margin-top:-9px }
+  input[type=range].ci-range::-moz-range-thumb { width:18px; height:18px }
 }
 
 /* ---------- mobile ---------- */
