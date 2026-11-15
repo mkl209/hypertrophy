@@ -293,6 +293,21 @@ input[type=range].ci-range::-moz-range-thumb { width:12px; height:12px; border-r
 input[type=range].ci-range:focus-visible::-webkit-slider-thumb { box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent) }
 input[type=range].ci-range:focus-visible::-moz-range-thumb { box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent) }
 
+/* ---------- compact exercise create/edit form (reuses .ci-sec and .ci-grid) ---------- */
+.xform .ci-sec:first-of-type { margin-top:4px }
+.xf-hint { text-transform:none; letter-spacing:0; font-weight:500; font-size:.72rem }
+.xf-details { display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr); gap:10px }
+.xf-defaults { display:grid; grid-template-columns:repeat(auto-fit,minmax(84px,1fr)); gap:10px }
+.xf-defaults input { width:100%; text-align:center }
+.xf-details input, .xf-details select, .xf-notes input { width:100% }
+.xf-notes { margin-top:10px }
+.xform .ms { min-width:0 }
+@media (max-width:760px) {
+  .xf-details { grid-template-columns:1fr 1fr }
+  .xf-name { grid-column:1 / -1 }
+  .xf-defaults { grid-template-columns:repeat(3,1fr) }
+}
+
 /* ---------- optional icon-only sidebar: add class "rail" to the .app element ---------- */
 @media (min-width:761px) {
   .app.rail { grid-template-columns:60px minmax(0,1fr) }
