@@ -104,10 +104,19 @@ export interface WorkoutDraft {
 export type NutritionGoal = 'bulk' | 'maintain' | 'cut';
 export interface NutritionPhase {
   id: ID; goal: NutritionGoal; name: string; startDate: string; endDate?: string;
-  calories: number; protein: number; carbs: number; fat: number; fibre?: number; waterMl?: number; weeklyChange?: number; notes?: string;
+  /** Daily calorie target. Always maintenance + adjustment, so anything that reads a target reads this. */
+  calories: number;
+  protein: number; carbs: number; fat: number; fibre?: number; waterMl?: number; weeklyChange?: number; notes?: string;
+  /** Estimated maintenance calories. Phases saved before this field existed don't have it. */
+  maintenance?: number;
+  /** Surplus (+) or deficit (−) in kcal/day applied to maintenance to get the target. */
+  adjustment?: number;
+  /** ± kcal that still counts as on target. Defaults to 100 when unset. */
+  tolerance?: number;
 }
 export interface FoodEntry { id: ID; date: string; name: string; calories: number; protein: number; carbs: number; fat: number; fibre: number; createdAt: number }
 export interface WaterLog { date: string; ml: number }
 export interface Supplement { id: ID; name: string; dose?: number; unit: string; frequency: string; timing: string; notes?: string; archived: boolean }
 export interface SupplementLog { id: ID; supplementId: ID; date: string; taken: boolean }
-export interface BodyweightEntry { date: string; weight: number; notes?: string }
+/** One entry per date. `bodyFat` is an optional estimated percentage (e.g. 15.2). */
+export interface BodyweightEntry { date: string; weight: number; bodyFat?: number; notes?: string }
