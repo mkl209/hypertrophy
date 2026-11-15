@@ -2,7 +2,8 @@ import { fromDayNumber } from '../core/calendar/dates.ts';
 
 export interface Series { name: string; color: string; points: { x: number; y: number }[]; dots?: boolean }
 /** Small dependency-free SVG line chart. x values are day numbers. */
-export default function LineChart({ series, height = 180, unit = '' }: { series: Series[]; height?: number; unit?: string }) {
+export default function LineChart({ series, height = 180, unit = '', xFormat }: { series: Series[]; height?: number; unit?: string; xFormat?: (x: number) => string }) {
+  const fx = xFormat ?? ((x: number) => fromDayNumber(x).slice(5));
   const pts = series.flatMap(s => s.points);
   if (pts.length < 2) return <p className="muted">Not enough data to chart yet.</p>;
   const W = 600, pad = 34;
@@ -16,8 +17,8 @@ export default function LineChart({ series, height = 180, unit = '' }: { series:
       <svg viewBox={`0 0 ${W} ${height}`} width="100%" role="img" aria-label={series.map(s => s.name).join(', ')}>
         <text x={4} y={Y(y1) + 4} fontSize="11" fill="currentColor">{y1.toFixed(1)}</text>
         <text x={4} y={Y(y0) + 4} fontSize="11" fill="currentColor">{y0.toFixed(1)}</text>
-        <text x={pad} y={height - 4} fontSize="11" fill="currentColor">{fromDayNumber(x0).slice(5)}</text>
-        <text x={W - 40} y={height - 4} fontSize="11" fill="currentColor">{fromDayNumber(x1).slice(5)}</text>
+        <text x={pad} y={height - 4} fontSize="11" fill="currentColor">{fx(x0)}</text>
+        <text x={W - 40} y={height - 4} fontSize="11" fill="currentColor">{fx(x1)}</text>
         {series.map(s => (
           <g key={s.name}>
             <polyline fill="none" stroke={s.color} strokeWidth={s.dots ? 1 : 2.5} strokeOpacity={s.dots ? 0.5 : 1} points={s.points.map(p => `${X(p.x)},${Y(p.y)}`).join(' ')} />

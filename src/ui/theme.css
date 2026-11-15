@@ -52,3 +52,9 @@ details summary { cursor:pointer; min-height:36px }
 .rec ul { margin:6px 0; padding-left:20px }
 .bar { height:10px; background:var(--border); border-radius:99px; overflow:hidden } .bar div { height:100%; border-radius:99px }
 .tbl { border-collapse:collapse; width:100%; min-width:460px } .tbl th,.tbl td { text-align:left; padding:8px; border-bottom:1px solid var(--border) }
+.cal { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px } .calh { text-align:center; font-size:.8rem; color:var(--muted); padding:4px 0 }
+.cald { all:unset; box-sizing:border-box; cursor:pointer; min-height:84px; padding:4px; border:1px solid var(--border); border-radius:8px; background:var(--card); display:flex; flex-direction:column; gap:2px; overflow:hidden; position:relative }
+.cald.out { opacity:.45 } .cald.today { border-color:var(--accent) } .cald.sel { box-shadow:0 0 0 2px var(--accent) } .cald:focus-visible { outline:2px solid var(--secondary) }
+.cald .num { font-weight:700; font-size:.85rem } .cald .meso { position:absolute; left:0; right:0; bottom:0; height:4px; background:var(--secondary) }
+.dot { font-size:.7rem; line-height:1.2; padding:1px 4px; border-radius:4px; border:1px solid var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.dot.s-completed,.dot.s-overdue,.dot.s-missed,.dot.s-skipped { border-color:transparent }
