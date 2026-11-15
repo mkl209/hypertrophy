@@ -48,3 +48,23 @@ export const DEFAULT_SETTINGS: UserSettings = {
 };
 
 export const DEFAULT_MUSCLES = ['Chest','Front delts','Side delts','Rear delts','Biceps','Triceps','Forearms','Lats','Upper back','Traps','Spinal erectors','Abdominals','Quadriceps','Hamstrings','Glutes','Adductors','Abductors','Calves'];
+
+export const EQUIPMENT: Equipment[] = ['barbell','dumbbell','cable','machine','smith','plate-loaded','bodyweight','band','kettlebell','other'];
+
+/** Reusable workout definition. Exercise names are snapshotted so renames never break display. */
+export interface TemplateExercise { id: ID; exerciseId: ID; exerciseName: string; sets: number; repMin: number; repMax: number; rir: number; restSec: number; notes?: string }
+export interface WorkoutTemplate { id: ID; name: string; exercises: TemplateExercise[]; archived: boolean; createdAt: number; updatedAt: number }
+
+/** Reusable week definition (weekday 0 = Monday). */
+export interface Microcycle { id: ID; name: string; days: { weekday: number; templateId: ID }[]; archived: boolean; createdAt: number }
+
+export type SequencePattern = 'repeat' | 'alternate' | 'custom';
+export interface Mesocycle {
+  id: ID; name: string; startDate: string; weeks: number; pattern: SequencePattern;
+  sequence: ID[]; // microcycle id for each week, length === weeks
+  notes?: string; status: 'active' | 'completed' | 'archived'; createdAt: number;
+}
+
+export type WorkoutStatus = 'scheduled' | 'completed' | 'missed' | 'skipped';
+/** A generated occurrence on a real date. Separate from any completed workout record. */
+export interface ScheduledWorkout { id: ID; mesocycleId: ID; weekIndex: number; date: string; originalDate: string; templateId: ID; status: WorkoutStatus }
