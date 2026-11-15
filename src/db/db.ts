@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import { DEFAULT_MUSCLES, DEFAULT_SETTINGS, type Equipment, type Exercise, type Mesocycle, type Microcycle, type MuscleGroup, type ScheduledWorkout, type UserSettings, type WorkoutTemplate } from '../core/types/index.ts';
+import { DEFAULT_MUSCLES, DEFAULT_SETTINGS, type Equipment, type Exercise, type Mesocycle, type Microcycle, type MuscleGroup, type ScheduledWorkout, type CompletedWorkout, type PreWorkoutCheckIn, type PostWorkoutFeedback, type WorkoutDraft, type UserSettings, type WorkoutTemplate } from '../core/types/index.ts';
 
 export class AppDB extends Dexie {
   settings!: Table<UserSettings, string>;
@@ -9,6 +9,10 @@ export class AppDB extends Dexie {
   microcycles!: Table<Microcycle, string>;
   mesocycles!: Table<Mesocycle, string>;
   scheduled!: Table<ScheduledWorkout, string>;
+  completed!: Table<CompletedWorkout, string>;
+  checkins!: Table<PreWorkoutCheckIn, string>;
+  feedback!: Table<PostWorkoutFeedback, string>;
+  drafts!: Table<WorkoutDraft, string>;
   constructor() {
     super('hypertrophy-coach');
     // Later phases add tables via db.version(2).stores({...}); never edit a shipped version.
@@ -22,6 +26,12 @@ export class AppDB extends Dexie {
       microcycles: 'id, name, archived',
       mesocycles: 'id, startDate, status',
       scheduled: 'id, mesocycleId, date'
+    });
+    this.version(3).stores({
+      completed: 'id, date, finishedAt, scheduledId, mesocycleId',
+      checkins: 'id, date',
+      feedback: 'id, workoutId',
+      drafts: 'id'
     });
   }
 }

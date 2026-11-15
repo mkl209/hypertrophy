@@ -42,3 +42,9 @@ h3 { font-size:.95rem; margin:14px 0 4px }
 .wk { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:10px; margin-bottom:8px } .wk.today { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) }
 .ex { font-size:.85rem }
 main { max-width:1200px }
+.slider { color:var(--text); margin:8px 0 } .slider input[type=range] { width:100%; min-height:36px; accent-color:var(--accent) } .sm2 { font-size:.85rem }
+.setrow { display:grid; grid-template-columns:minmax(96px,1.3fr) 1fr 1fr .8fr auto auto; gap:6px; align-items:center; margin:8px 0 }
+.setrow input { min-width:0; width:100%; text-align:center; font-size:1.05rem; min-height:48px } .setrow .btn { min-height:48px; min-width:56px } .setrow.done input,.setrow.done select { opacity:.6 }
+.timer { position:sticky; top:8px; z-index:5; display:flex; align-items:center; gap:10px; background:var(--surface); color:#F6FFF8; padding:10px 14px; border-radius:12px; margin-bottom:10px; font-weight:700; font-variant-numeric:tabular-nums }
+.btn:disabled { opacity:.5; cursor:not-allowed }
+details summary { cursor:pointer; min-height:36px }

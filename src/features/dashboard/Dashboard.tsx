@@ -18,6 +18,7 @@ export default function Dashboard() {
       <div className="card"><h2>Today · {today}</h2>
         {meso ? <p>{meso.name}, week {week + 1} of {meso.weeks} ({micros.find(m => m.id === meso.sequence[week])?.name}).</p> : <p className="muted">No active mesocycle covers today. Create one in Programme.</p>}
         {todays.filter(w => !meso || w.mesocycleId === meso.id).map(w => <WorkoutCard key={w.id} w={w} t={tpl(w.templateId)} today={today} />)}
+        {todays.length > 0 && <button className="btn" onClick={() => { location.hash = '/workout'; }}>Go to workout</button>}
         {meso && todays.length === 0 && <p className="muted">Rest day.</p>}
       </div>
       <div className="card"><h2>Next 7 days</h2>

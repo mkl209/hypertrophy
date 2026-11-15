@@ -68,3 +68,29 @@ export interface Mesocycle {
 export type WorkoutStatus = 'scheduled' | 'completed' | 'missed' | 'skipped';
 /** A generated occurrence on a real date. Separate from any completed workout record. */
 export interface ScheduledWorkout { id: ID; mesocycleId: ID; weekIndex: number; date: string; originalDate: string; templateId: ID; status: WorkoutStatus }
+
+// ---------- Phase 3: logging ----------
+export type SetKind = 'warmup' | 'working' | 'drop' | 'failure';
+export interface CompletedSet { id: ID; kind: SetKind; weight: number; reps: number; rir?: number; note?: string }
+/** Snapshot of what was actually done. Never changes when templates or exercises are edited later. */
+export interface CompletedExercise { id: ID; exerciseId: ID; exerciseName: string; prescribed: { sets: number; repMin: number; repMax: number; rir: number }; sets: CompletedSet[]; notes?: string }
+export interface CompletedWorkout {
+  id: ID; scheduledId?: ID; mesocycleId?: ID; templateId?: ID; templateName: string; date: string;
+  startedAt: number; finishedAt: number; unit: WeightUnit; exercises: CompletedExercise[]; checkinId?: ID;
+}
+/** All scales 1–5. Higher = more of the named thing (so for sleep quality, recovery, motivation, readiness, hydration, higher is better). */
+export interface PreWorkoutCheckIn {
+  id: ID; date: string; scheduledId?: ID; sleepHours: number; sleepQuality: number; fatigue: number; soreness: number; recovery: number;
+  stress: number; mentalFatigue: number; motivation: number; readiness: number; jointDiscomfort: number; jointPain: number;
+  unwell: boolean; hydration: number; waterL?: number; notes?: string; createdAt: number;
+}
+export interface PostWorkoutFeedback {
+  id: ID; workoutId: ID; pump: number; soreness: number; workload: number; fatigue: number;
+  performance: 'below' | 'met' | 'exceeded'; difficulty: 'easy' | 'appropriate' | 'hard'; notes?: string; createdAt: number;
+}
+export interface DraftSet { id: ID; kind: SetKind; weight: string; reps: string; rir: string; done: boolean }
+export interface DraftExercise { id: ID; exerciseId: ID; name: string; prescribed: { sets: number; repMin: number; repMax: number; rir: number }; restSec: number; notes?: string; list: DraftSet[] }
+export interface WorkoutDraft {
+  id: 'current'; scheduledId?: ID; mesocycleId?: ID; templateId?: ID; templateName: string; date: string; startedAt: number;
+  stage: 'checkin' | 'feed' | 'log' | 'finish'; checkin?: PreWorkoutCheckIn; exercises: DraftExercise[];
+}
