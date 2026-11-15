@@ -1,12 +1,46 @@
-import { useState } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import { db, newId } from '../../db/db.ts';
 import type { PreWorkoutCheckIn } from '../../core/types/index.ts';
 import { num } from '../../ui/util.ts';
 
-const Slider = ({ label, v, set, lo, hi }: { label: string; v: number; set: (n: number) => void; lo: string; hi: string }) => (
-  <label className="slider">{label}: <strong>{v}</strong>
-    <input type="range" min={1} max={5} step={1} value={v} onChange={e => set(Number(e.target.value))} />
-    <span className="muted sm2">{lo} ← → {hi}</span></label>
+type Kind = 'slider' | 'buttons';
+
+/** One 1-5 question. `as` picks how it is shown: a compact slider or a row of 1-5 buttons. */
+function Scale({ label, name, v, set, lo, hi, as }: {
+  label: string; name: string; v: number; set: (n: number) => void; lo: string; hi: string; as: Kind;
+}) {
+  return (
+    <div className="ci-field">
+      <div className="ci-head">
+        <span className="ci-label">{label}</span>
+        {as === 'slider' && <strong className="ci-val">{v}</strong>}
+      </div>
+      {as === 'slider' ? (
+        <input
+          type="range" className="ci-range" min={1} max={5} step={1} value={v} aria-label={label}
+          style={{ '--p': `${(v - 1) * 25}%` } as CSSProperties}
+          onChange={e => set(Number(e.target.value))}
+        />
+      ) : (
+        <div className="seg-group" role="radiogroup" aria-label={label}>
+          {[1, 2, 3, 4, 5].map(n => (
+            <label key={n} className="seg">
+              <input type="radio" name={name} checked={v === n} onChange={() => set(n)} />
+              <span>{n}</span>
+            </label>
+          ))}
+        </div>
+      )}
+      <div className="ci-ends"><span>{lo}</span><span>{hi}</span></div>
+    </div>
+  );
+}
+
+const Sec = ({ title, children }: { title: string; children: ReactNode }) => (
+  <section>
+    <h3 className="ci-sec">{title}</h3>
+    <div className="ci-grid">{children}</div>
+  </section>
 );
 
 export default function CheckIn({ date, scheduledId, onDone }: { date: string; scheduledId?: string; onDone: (c?: PreWorkoutCheckIn) => void }) {
@@ -14,30 +48,46 @@ export default function CheckIn({ date, scheduledId, onDone }: { date: string; s
   const p = (k: keyof PreWorkoutCheckIn) => (n: number) => setC(x => ({ ...x, [k]: n }));
   const caution = c.unwell || c.jointPain >= 4;
   const go = async () => { await db.checkins.put(c); onDone(c); };
+
+  // To swap any question between a slider and buttons, change its `as` prop below.
   return (
     <div className="card">
-      <h2>Pre-workout check-in</h2><p className="muted">About 30 seconds. All of this is optional context for your recommendations.</p>
-      <h3>Sleep</h3>
-      <label>Hours slept<input type="number" min={0} max={16} step={0.25} value={c.sleepHours} onChange={e => setC({ ...c, sleepHours: num(e.target.value, 0) })} /></label>
-      <Slider label="Sleep quality" v={c.sleepQuality} set={p('sleepQuality')} lo="poor" hi="great" />
-      <h3>Recovery</h3>
-      <Slider label="General fatigue" v={c.fatigue} set={p('fatigue')} lo="fresh" hi="exhausted" />
-      <Slider label="Muscle soreness" v={c.soreness} set={p('soreness')} lo="none" hi="very sore" />
-      <Slider label="Recovered from last sessions" v={c.recovery} set={p('recovery')} lo="not at all" hi="fully" />
-      <h3>Mind</h3>
-      <Slider label="Stress" v={c.stress} set={p('stress')} lo="calm" hi="very stressed" />
-      <Slider label="Mental fatigue" v={c.mentalFatigue} set={p('mentalFatigue')} lo="sharp" hi="drained" />
-      <Slider label="Motivation" v={c.motivation} set={p('motivation')} lo="low" hi="high" />
-      <Slider label="Overall readiness" v={c.readiness} set={p('readiness')} lo="poor" hi="excellent" />
-      <h3>Body</h3>
-      <Slider label="Joint discomfort" v={c.jointDiscomfort} set={p('jointDiscomfort')} lo="none" hi="a lot" />
-      <Slider label="Joint pain" v={c.jointPain} set={p('jointPain')} lo="none" hi="sharp / severe" />
-      <label className="chk"><input type="checkbox" checked={c.unwell} onChange={e => setC({ ...c, unwell: e.target.checked })} />Feeling ill or unwell</label>
-      {caution && <p className="err" role="alert">Don’t push through concerning pain or illness. Consider a lighter session, swapping exercises, or resting. If pain is persistent or sharp, get it checked by a qualified professional. This app can’t diagnose injuries.</p>}
-      <h3>Hydration</h3>
-      <Slider label="Hydration today" v={c.hydration} set={p('hydration')} lo="dry" hi="well hydrated" />
-      <label>Water so far (litres, optional)<input type="number" min={0} step={0.1} value={c.waterL ?? ''} onChange={e => setC({ ...c, waterL: e.target.value === '' ? undefined : num(e.target.value, 0) })} /></label>
-      <label>Notes<input type="text" value={c.notes ?? ''} onChange={e => setC({ ...c, notes: e.target.value })} /></label>
+      <h2>Pre-workout check-in</h2>
+      <p className="muted sm2 ci-intro">About 30 seconds. All of this is optional context for your recommendations.</p>
+
+      <Sec title="Sleep">
+        <label className="ci-field">Hours slept<input type="number" min={0} max={16} step={0.25} value={c.sleepHours} onChange={e => setC({ ...c, sleepHours: num(e.target.value, 0) })} /></label>
+        <Scale as="buttons" label="Sleep quality" name="sleepQuality" v={c.sleepQuality} set={p('sleepQuality')} lo="poor" hi="great" />
+      </Sec>
+
+      <Sec title="Recovery">
+        <Scale as="slider" label="General fatigue" name="fatigue" v={c.fatigue} set={p('fatigue')} lo="fresh" hi="exhausted" />
+        <Scale as="slider" label="Muscle soreness" name="soreness" v={c.soreness} set={p('soreness')} lo="none" hi="very sore" />
+        <Scale as="buttons" label="Recovered from last sessions" name="recovery" v={c.recovery} set={p('recovery')} lo="not at all" hi="fully" />
+      </Sec>
+
+      <Sec title="Mind">
+        <Scale as="slider" label="Stress" name="stress" v={c.stress} set={p('stress')} lo="calm" hi="very stressed" />
+        <Scale as="slider" label="Mental fatigue" name="mentalFatigue" v={c.mentalFatigue} set={p('mentalFatigue')} lo="sharp" hi="drained" />
+        <Scale as="buttons" label="Motivation" name="motivation" v={c.motivation} set={p('motivation')} lo="low" hi="high" />
+        <Scale as="buttons" label="Overall readiness" name="readiness" v={c.readiness} set={p('readiness')} lo="poor" hi="excellent" />
+      </Sec>
+
+      <Sec title="Body">
+        <Scale as="buttons" label="Joint discomfort" name="jointDiscomfort" v={c.jointDiscomfort} set={p('jointDiscomfort')} lo="none" hi="a lot" />
+        <Scale as="buttons" label="Joint pain" name="jointPain" v={c.jointPain} set={p('jointPain')} lo="none" hi="sharp / severe" />
+        <div className="ci-field ci-toggle">
+          <label className="chk"><input type="checkbox" className="switch" checked={c.unwell} onChange={e => setC({ ...c, unwell: e.target.checked })} />Feeling ill or unwell</label>
+        </div>
+        {caution && <p className="err ci-wide" role="alert">Don’t push through concerning pain or illness. Consider a lighter session, swapping exercises, or resting. If pain is persistent or sharp, get it checked by a qualified professional. This app can’t diagnose injuries.</p>}
+      </Sec>
+
+      <Sec title="Hydration">
+        <Scale as="slider" label="Hydration today" name="hydration" v={c.hydration} set={p('hydration')} lo="dry" hi="well hydrated" />
+        <label className="ci-field">Water so far (litres, optional)<input type="number" min={0} step={0.1} value={c.waterL ?? ''} onChange={e => setC({ ...c, waterL: e.target.value === '' ? undefined : num(e.target.value, 0) })} /></label>
+        <label className="ci-field ci-wide">Notes<input type="text" value={c.notes ?? ''} onChange={e => setC({ ...c, notes: e.target.value })} /></label>
+      </Sec>
+
       <div className="row"><button className="btn" onClick={go}>Continue</button><button className="btn ghost" onClick={() => onDone(undefined)}>Skip check-in</button></div>
     </div>
   );
