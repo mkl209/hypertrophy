@@ -26,53 +26,62 @@ export default function Templates() {
     setEdit(null); setErr('');
   };
 
+  const numField = (label: string, value: number, onChange: (v: string) => void, min: number, extra?: { max?: number; step?: number }) => (
+    <label className="tx-f">{label}<input type="number" min={min} max={extra?.max} step={extra?.step} value={value} onChange={e => onChange(e.target.value)} /></label>
+  );
+
   if (edit) return (
-    <div className="card">
-      <h2>{templates.some(t => t.id === edit.id) ? 'Edit template' : 'New template'}</h2>
-      <label>Name<input type="text" value={edit.name} onChange={e => setEdit({ ...edit, name: e.target.value })} /></label>
+    <div className="card cmp tx">
+      <div className="cmp-head">
+        <h2>{templates.some(t => t.id === edit.id) ? 'Edit template' : 'New template'}</h2>
+        <label className="grow">Name<input type="text" value={edit.name} onChange={e => setEdit({ ...edit, name: e.target.value })} /></label>
+      </div>
       {edit.exercises.map((r, i) => (
-        <div key={r.id} className="item col">
-          <strong>{i + 1}. {r.exerciseName}</strong>
-          <div className="row">
-            <label>Sets<input type="number" min={1} value={r.sets} onChange={e => patchRow(r.id, { sets: num(e.target.value, 1) })} /></label>
-            <label>Min reps<input type="number" min={1} value={r.repMin} onChange={e => patchRow(r.id, { repMin: num(e.target.value, 1) })} /></label>
-            <label>Max reps<input type="number" min={1} value={r.repMax} onChange={e => patchRow(r.id, { repMax: num(e.target.value, 1) })} /></label>
-            <label>RIR<input type="number" min={0} max={5} value={r.rir} onChange={e => patchRow(r.id, { rir: num(e.target.value, 0) })} /></label>
-            <label>Rest (s)<input type="number" min={0} step={15} value={r.restSec} onChange={e => patchRow(r.id, { restSec: num(e.target.value, 0) })} /></label>
+        <div key={r.id} className="tx-item">
+          <strong className="tx-name" title={r.exerciseName}>{i + 1}. {r.exerciseName}</strong>
+          <span className="tx-act">
+            <button className="btn ghost xs" onClick={() => move(i, -1)} aria-label="Move up">↑</button>
+            <button className="btn ghost xs" onClick={() => move(i, 1)} aria-label="Move down">↓</button>
+            <button className="btn ghost xs" onClick={() => setEdit({ ...edit, exercises: edit.exercises.filter(x => x.id !== r.id) })} aria-label="Remove exercise">×</button>
+          </span>
+          <div className="tx-nums">
+            {numField('Sets', r.sets, v => patchRow(r.id, { sets: num(v, 1) }), 1)}
+            {numField('Min', r.repMin, v => patchRow(r.id, { repMin: num(v, 1) }), 1)}
+            {numField('Max', r.repMax, v => patchRow(r.id, { repMax: num(v, 1) }), 1)}
+            {numField('RIR', r.rir, v => patchRow(r.id, { rir: num(v, 0) }), 0, { max: 5 })}
+            {numField('Rest s', r.restSec, v => patchRow(r.id, { restSec: num(v, 0) }), 0, { step: 15 })}
           </div>
-          <label>Notes<input type="text" value={r.notes ?? ''} onChange={e => patchRow(r.id, { notes: e.target.value })} /></label>
-          <div className="row">
-            <button className="btn ghost" onClick={() => move(i, -1)} aria-label="Move up">↑</button>
-            <button className="btn ghost" onClick={() => move(i, 1)} aria-label="Move down">↓</button>
-            <button className="btn ghost" onClick={() => setEdit({ ...edit, exercises: edit.exercises.filter(x => x.id !== r.id) })}>Remove</button>
-          </div>
+          <details className="tx-note">
+            <summary className="muted">{r.notes ? 'Note ✎' : '+ Note'}</summary>
+            <input type="text" aria-label="Notes" value={r.notes ?? ''} onChange={e => patchRow(r.id, { notes: e.target.value })} />
+          </details>
         </div>
       ))}
-      <label>Add exercise
-        <select value="" onChange={e => add(e.target.value)}><option value="">Choose…</option>{exercises.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}</select>
-      </label>
-      <p className="muted">Saving changes updates this template for all scheduled sessions that use it. Completed workouts keep their own record.</p>
-      {err && <p role="alert" className="err">{err}</p>}
-      <div className="row"><button className="btn" onClick={save}>Save</button><button className="btn ghost" onClick={() => { setEdit(null); setErr(''); }}>Cancel</button></div>
+      <div className="row">
+        <select aria-label="Add exercise" value="" onChange={e => add(e.target.value)}><option value="">+ Add exercise…</option>{exercises.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}</select>
+        <button className="btn sm" onClick={save}>Save</button>
+        <button className="btn ghost sm" onClick={() => { setEdit(null); setErr(''); }}>Cancel</button>
+      </div>
+      <p className="muted sm2 cmp-p">Saving updates this template for all scheduled sessions that use it. Completed workouts keep their own record.</p>
+      {err && <p role="alert" className="err cmp-p">{err}</p>}
     </div>
   );
 
   const blank = (): WorkoutTemplate => ({ id: newId(), name: '', exercises: [], archived: false, createdAt: Date.now(), updatedAt: Date.now() });
   return (
-    <div className="card">
-      <h2>Workout templates</h2>
-      <button className="btn" onClick={() => setEdit(blank())}>+ New template</button>
+    <div className="card cmp">
+      <div className="cmp-head"><h2>Workout templates</h2><button className="btn sm" onClick={() => setEdit(blank())}>+ New</button></div>
       {templates.filter(t => !t.archived).map(t => (
         <div key={t.id} className="item">
-          <div><strong>{t.name}</strong><div className="muted">{t.exercises.length} exercises · {t.exercises.reduce((s, r) => s + r.sets, 0)} sets</div></div>
+          <div><strong>{t.name}</strong> <span className="muted sm2">{t.exercises.length} ex · {t.exercises.reduce((s, r) => s + r.sets, 0)} sets</span></div>
           <div className="row">
-            <button className="btn ghost" onClick={() => setEdit(t)}>Edit</button>
-            <button className="btn ghost" onClick={() => setEdit({ ...t, id: newId(), name: `${t.name} (copy)`, exercises: t.exercises.map(r => ({ ...r, id: newId() })), createdAt: Date.now() })}>Clone</button>
-            <button className="btn ghost" onClick={() => db.templates.update(t.id, { archived: true })}>Archive</button>
+            <button className="btn ghost xs" onClick={() => setEdit(t)}>Edit</button>
+            <button className="btn ghost xs" onClick={() => setEdit({ ...t, id: newId(), name: `${t.name} (copy)`, exercises: t.exercises.map(r => ({ ...r, id: newId() })), createdAt: Date.now() })}>Clone</button>
+            <button className="btn ghost xs" onClick={() => db.templates.update(t.id, { archived: true })}>Archive</button>
           </div>
         </div>
       ))}
-      {templates.every(t => t.archived) && <p className="muted">No templates yet. Create one, for example “Full Body A”.</p>}
+      {templates.every(t => t.archived) && <p className="muted cmp-p">No templates yet. Create one, for example “Full Body A”.</p>}
     </div>
   );
 }

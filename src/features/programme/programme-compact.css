@@ -1,0 +1,58 @@
+/* ---------- compact programme pages: append at the END of your stylesheet ---------- */
+
+/* shared helpers */
+.btn.xs { min-height: 24px; padding: 0 8px; font-size: .72rem; font-weight: 600; border-radius: 6px }
+.cmp { padding: 8px 10px; margin-bottom: 8px }
+.cmp .row { margin: 4px 0; gap: 6px }
+.cmp .item { padding: 5px 0; gap: 6px }
+.cmp-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 6px }
+.cmp-head h2 { margin: 0 0 4px }
+.cmp-head .grow, .grow { flex: 1 1 160px; min-width: 0 }
+.cmp .cmp-head .grow h2 { margin: 0 }
+.cmp-p { margin: 4px 0 }
+.cmp select, .cmp input[type=text], .cmp input[type=number], .cmp input[type=date] { min-height: 32px; padding: 3px 8px }
+.cmp label { gap: 2px; font-size: .64rem }
+.cmp label.chk { font-size: .82rem }
+.cmp .chk { min-height: 32px }
+
+/* auto-fit field grid (New block, Weeks) */
+.cgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); gap: 6px 8px; align-items: end }
+.cgrid select, .cgrid input { width: 100% }
+.wk-days { grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr)) }
+
+/* Templates editor: [name][actions][sets min max RIR rest] on one line when there is room */
+.tx-item { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 8px; padding: 6px 0; border-top: 1px solid var(--border) }
+.tx-item:first-of-type { border-top: 0 }
+.tx-name { flex: 1 1 150px; min-width: 0; align-self: center; font-size: .86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.tx-nums { order: 1; display: grid; grid-template-columns: repeat(5, 56px); gap: 4px }
+.tx-act { order: 2; display: flex; gap: 2px; align-self: center }
+.tx-f input { width: 100%; text-align: center; padding: 3px 4px }
+.tx-note { order: 3; flex: 1 1 100% }
+.tx-note summary { min-height: 18px; font-size: .72rem }
+.tx-note input { width: 100%; margin-top: 2px }
+
+/* Schedule */
+.wk { padding: 5px 7px; margin-bottom: 4px }
+.wk-h { display: flex; justify-content: space-between; align-items: center; gap: 6px }
+.wk-h strong { font-size: .8rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.wk-h .badge { padding: 0 7px; font-size: .64rem; flex: none }
+.exl { display: flex; justify-content: space-between; gap: 6px; font-size: .72rem; line-height: 1.35; padding: 1px 0 }
+.exl-n { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.exl .muted { flex: none; white-space: nowrap }
+.wk-a { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; align-items: center }
+.wk-a input[type=date] { min-height: 24px; padding: 0 6px; font-size: .72rem }
+
+.sched .gh { padding: 5px 8px; font-size: .8rem }
+.sched .gl { padding: 6px 6px; font-size: .66rem }
+.sched .gc { padding: 4px }
+
+@media (max-width: 760px) {
+  .tx-nums { order: 3; flex: 1 1 100%; grid-template-columns: repeat(5, 1fr) }
+  .tx-act { order: 1 }
+  .tx-note { order: 4 }
+}
+@media (pointer: coarse) {
+  .btn.xs { min-height: 32px }
+  .cmp select, .cmp input[type=text], .cmp input[type=number], .cmp input[type=date] { min-height: 40px }
+  .wk-a input[type=date] { min-height: 32px }
+}

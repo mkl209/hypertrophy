@@ -12,15 +12,20 @@ export function WorkoutCard({ w, t, today, actions }: { w: ScheduledWorkout; t?:
   const status = w.status === 'scheduled' && w.date < today ? 'overdue' : w.status;
   return (
     <div className={`wk ${w.date === today ? 'today' : ''}`}>
-      <div className="row" style={{ justifyContent: 'space-between', margin: 0 }}><strong>{t?.name ?? 'Missing template'}</strong><span className={`badge s-${status}`}>{status}{w.date !== w.originalDate ? ' · moved' : ''}</span></div>
-      {t?.exercises.map(r => <div key={r.id} className="ex"><span>{r.exerciseName} <span className="muted">{r.sets}×{r.repMin}–{r.repMax}</span></span><span className="chip">RIR {r.rir}</span></div>)}
+      <div className="wk-h"><strong>{t?.name ?? 'Missing template'}</strong><span className={`badge s-${status}`}>{status}{w.date !== w.originalDate ? ' · moved' : ''}</span></div>
+      {t?.exercises.map(r => (
+        <div key={r.id} className="exl" title={r.exerciseName}>
+          <span className="exl-n">{r.exerciseName}</span>
+          <span className="muted">{r.sets}×{r.repMin}–{r.repMax} · RIR {r.rir}</span>
+        </div>
+      ))}
       {actions && (
-        <div className="row" style={{ marginBottom: 0 }}>
+        <div className="wk-a">
           {w.status === 'scheduled' ? <>
-            <button className="btn ghost sm" onClick={() => db.scheduled.update(w.id, { status: 'skipped' })}>Skip</button>
-            <button className="btn ghost sm" onClick={() => db.scheduled.update(w.id, { status: 'missed' })}>Missed</button>
-            <button className="btn ghost sm" onClick={() => setMoving(m => !m)}>Move</button></>
-            : <button className="btn ghost sm" onClick={() => db.scheduled.update(w.id, { status: 'scheduled' })}>Undo</button>}
+            <button className="btn ghost xs" onClick={() => db.scheduled.update(w.id, { status: 'skipped' })}>Skip</button>
+            <button className="btn ghost xs" onClick={() => db.scheduled.update(w.id, { status: 'missed' })}>Missed</button>
+            <button className="btn ghost xs" onClick={() => setMoving(m => !m)}>Move</button></>
+            : <button className="btn ghost xs" onClick={() => db.scheduled.update(w.id, { status: 'scheduled' })}>Undo</button>}
           {moving && <input type="date" defaultValue={w.date} onChange={e => { if (isValidISODate(e.target.value)) { db.scheduled.update(w.id, { date: e.target.value, status: 'scheduled' }); setMoving(false); } }} />}
         </div>)}
     </div>
@@ -34,7 +39,7 @@ export default function Schedule({ selected, onSelect }: { selected: string; onS
   const micros = useLiveQuery(() => db.microcycles.toArray(), []) ?? [];
   const meso = mesos.find(m => m.id === selected) ?? mesos[0];
   const work = useLiveQuery(() => meso ? db.scheduled.where('mesocycleId').equals(meso.id).toArray() : [], [meso?.id]) ?? [];
-  if (!meso) return <div className="card"><h2>Schedule</h2><p className="muted">No mesocycle yet. Create templates, then a week, then a block.</p></div>;
+  if (!meso) return <div className="card cmp"><h2>Schedule</h2><p className="muted cmp-p">No mesocycle yet. Create templates, then a week, then a block.</p></div>;
 
   const first = startOfWeekMonday(meso.startDate);
   const curWeek = Math.floor(diffDays(today, first) / 7);
@@ -48,17 +53,23 @@ export default function Schedule({ selected, onSelect }: { selected: string; onS
   return (
     <>
       <div className="tabs">{mesos.map(m => <button key={m.id} aria-current={m.id === meso.id ? 'page' : undefined} onClick={() => onSelect(m.id)}>{m.name} <span className="muted">{m.weeks}w</span></button>)}</div>
-      <div className="card">
-        <div className="row" style={{ justifyContent: 'space-between' }}>
-          <div><h2 style={{ margin: 0 }}>{meso.name}</h2><span className="muted">Starts {meso.startDate} · {meso.weeks} weeks · {work.length} sessions · {done} completed · {meso.pattern}</span><div className="muted sm2">{describeProgression(meso.progression)}</div></div>
-          <div className="row"><PauseControl meso={meso} work={work} /><button className="btn ghost" onClick={() => db.mesocycles.update(meso.id, { status: 'completed' })}>Mark complete</button>
-            <button className="btn ghost" onClick={() => { if (confirm('Archive this block? Its data is kept.')) db.mesocycles.update(meso.id, { status: 'archived' }); }}>Archive</button></div>
+      <div className="card cmp">
+        <div className="cmp-head">
+          <div className="grow">
+            <h2>{meso.name}</h2>
+            <div className="muted sm2">{meso.startDate} · {meso.weeks}w · {done}/{work.length} done · {meso.pattern} · {describeProgression(meso.progression)}</div>
+          </div>
+          <div className="row" style={{ margin: 0 }}>
+            <PauseControl meso={meso} work={work} />
+            <button className="btn ghost xs" onClick={() => db.mesocycles.update(meso.id, { status: 'completed' })}>Mark complete</button>
+            <button className="btn ghost xs" onClick={() => { if (confirm('Archive this block? Its data is kept.')) db.mesocycles.update(meso.id, { status: 'archived' }); }}>Archive</button>
+          </div>
         </div>
       </div>
-      <div className="gridwrap"><div className="grid" style={{ gridTemplateColumns: `90px repeat(${meso.weeks}, minmax(210px, 1fr))` }}>
+      <div className="gridwrap sched"><div className="grid" style={{ gridTemplateColumns: `42px repeat(${meso.weeks}, minmax(176px, 1fr))` }}>
         <div />
         {Array.from({ length: meso.weeks }, (_, w) => (
-          <div key={w} className={`gh ${w === curWeek ? 'cur' : ''}`}><strong>W{w + 1} · {micros.find(m => m.id === meso.sequence[w])?.name ?? 'Paused'}</strong><div className="muted">{addDays(first, w * 7).slice(5)} → {addDays(first, w * 7 + 6).slice(5)}</div></div>
+          <div key={w} className={`gh ${w === curWeek ? 'cur' : ''}`}><strong>W{w + 1} · {micros.find(m => m.id === meso.sequence[w])?.name ?? 'Paused'}</strong> <span className="muted sm2">{addDays(first, w * 7).slice(5)}→{addDays(first, w * 7 + 6).slice(5)}</span></div>
         ))}
         {rows.map(d => (<Fragment key={d}>
           <div key={`l${d}`} className="gl">{DAYS[d].slice(0, 3)}</div>
@@ -67,7 +78,7 @@ export default function Schedule({ selected, onSelect }: { selected: string; onS
           ))}
         </Fragment>))}
       </div></div>
-      {outside.length > 0 && <div className="card"><h2>Moved outside the block</h2>{outside.map(x => <WorkoutCard key={x.id} w={x} t={tpl(x.templateId)} today={today} actions />)}</div>}
+      {outside.length > 0 && <div className="card cmp"><h2>Moved outside the block</h2>{outside.map(x => <WorkoutCard key={x.id} w={x} t={tpl(x.templateId)} today={today} actions />)}</div>}
     </>
   );
 }

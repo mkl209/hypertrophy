@@ -45,31 +45,29 @@ export default function NewBlock({ onDone }: { onDone: (id: string) => void }) {
   };
 
   return (
-    <div className="card">
-      <h2>New mesocycle</h2>
-      <div className="row">
+    <div className="card cmp">
+      <div className="cmp-head">
+        <h2>New mesocycle</h2>
+        <button className="btn sm" onClick={create} disabled={micros.length === 0}>Create and schedule</button>
+      </div>
+      <div className="cgrid">
         <label>Name<input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Block A" /></label>
         <label>Start date<input type="date" value={start} onChange={e => setStart(e.target.value)} /></label>
-        <label>Weeks (4–8 typical)<input type="number" min={1} max={12} value={weeks} onChange={e => setWeeks(num(e.target.value, 5))} /></label>
+        <label>Weeks (4–8)<input type="number" min={1} max={12} value={weeks} onChange={e => setWeeks(num(e.target.value, 5))} /></label>
         <label>Structure<select value={pattern} onChange={e => { setPattern(e.target.value as SequencePattern); setPicks([]); }}>
-          <option value="repeat">Repeat one week</option><option value="alternate">Alternate two weeks (A/B)</option><option value="custom">Custom sequence</option></select></label>
-      </div>
-      <div className="row">
+          <option value="repeat">Repeat one week</option><option value="alternate">Alternate A/B</option><option value="custom">Custom sequence</option></select></label>
         {pattern === 'repeat' && sel(0, 'Week to repeat')}
         {pattern === 'alternate' && <>{sel(0, 'Week A')}{sel(1, 'Week B')}</>}
         {pattern === 'custom' && Array.from({ length: weeks }, (_, i) => sel(i, `Week ${i + 1}`))}
-      </div>
-      <div className="row">
         <label>Progression<select value={chosen0} onChange={e => setStrategy(e.target.value as Strategy)}>{allowed.map(k => <option key={k} value={k}>{STRATEGY_LABEL[k]}</option>)}</select></label>
         {chosen0 === 'volume' && <>
-          <label>Extra sets per week<input type="number" min={0} max={2} value={wk} onChange={e => setWk(num(e.target.value, 1))} /></label>
+          <label>Extra sets / week<input type="number" min={0} max={2} value={wk} onChange={e => setWk(num(e.target.value, 1))} /></label>
           <label>Max extra sets<input type="number" min={0} max={6} value={maxExtra} onChange={e => setMaxExtra(num(e.target.value, 2))} /></label>
           <label className="chk"><input type="checkbox" checked={deload} onChange={e => setDeload(e.target.checked)} />Deload final week</label></>}
       </div>
-      {level === 'beginner' && <p className="muted">Beginner mode keeps progression simple, so volume progression is not offered.</p>}
-      {micros.length === 0 && <p className="err">Create at least one week structure first (Weeks tab).</p>}
-      {err && <p role="alert" className="err">{err}</p>}
-      <button className="btn" onClick={create}>Create and schedule</button>
+      {level === 'beginner' && <p className="muted sm2 cmp-p">Beginner mode keeps progression simple, so volume progression is not offered.</p>}
+      {micros.length === 0 && <p className="err cmp-p">Create at least one week structure first (Weeks tab).</p>}
+      {err && <p role="alert" className="err cmp-p">{err}</p>}
     </div>
   );
 }
