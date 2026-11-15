@@ -13,7 +13,7 @@ export function WorkoutCard({ w, t, today, actions }: { w: ScheduledWorkout; t?:
   return (
     <div className={`wk ${w.date === today ? 'today' : ''}`}>
       <div className="row" style={{ justifyContent: 'space-between', margin: 0 }}><strong>{t?.name ?? 'Missing template'}</strong><span className={`badge s-${status}`}>{status}{w.date !== w.originalDate ? ' · moved' : ''}</span></div>
-      {t?.exercises.map(r => <div key={r.id} className="muted ex">{r.exerciseName} {r.sets}×{r.repMin}–{r.repMax} <span className="chip">RIR {r.rir}</span></div>)}
+      {t?.exercises.map(r => <div key={r.id} className="ex"><span>{r.exerciseName} <span className="muted">{r.sets}×{r.repMin}–{r.repMax}</span></span><span className="chip">RIR {r.rir}</span></div>)}
       {actions && (
         <div className="row" style={{ marginBottom: 0 }}>
           {w.status === 'scheduled' ? <>

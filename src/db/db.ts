@@ -55,7 +55,9 @@ export const newId = (): string => crypto.randomUUID();
 
 /** Idempotent first-run seeding. */
 export async function initDb(): Promise<void> {
-  if (!(await db.settings.get('settings'))) await db.settings.put(DEFAULT_SETTINGS);
+  const cur = await db.settings.get('settings');
+  if (!cur) await db.settings.put(DEFAULT_SETTINGS);
+  else if ((cur.uiVersion ?? 0) < 2) await db.settings.update('settings', { theme: 'dark', uiVersion: 2 }); // one-time move to the new dark design
   if ((await db.muscles.count()) === 0) {
     await db.muscles.bulkPut(DEFAULT_MUSCLES.map(name => ({ id: mid(name), name, custom: false, archived: false })));
   }

@@ -17,6 +17,7 @@ export interface UserSettings {
   weekStartsOn: 0; // Monday (fixed for now)
   recommendationsEnabled: boolean;
   defaultStrategy?: Strategy;
+  uiVersion?: number;
   secondaryMuscleWeight: number; // indirect-set contribution, always presented as an estimate
 }
 
@@ -43,7 +44,7 @@ export interface Exercise {
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {
-  id: 'settings', schemaVersion: 1, setupComplete: false, experience: 'beginner', unit: 'kg', theme: 'light',
+  id: 'settings', schemaVersion: 1, setupComplete: false, experience: 'beginner', unit: 'kg', theme: 'dark', uiVersion: 2,
   accent: '#DD403A', secondary: '#F4D35E', surface: '#3E363F', background: '#F6FFF8',
   weekStartsOn: 0, recommendationsEnabled: true, secondaryMuscleWeight: 0.5
 };
