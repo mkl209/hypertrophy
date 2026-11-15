@@ -66,7 +66,7 @@ export interface Progression { strategy: Strategy; volume?: { weeklySetChange: n
 export interface Mesocycle {
   id: ID; name: string; startDate: string; weeks: number; pattern: SequencePattern;
   sequence: ID[]; // microcycle id for each week, length === weeks
-  notes?: string; progression?: Progression; status: 'active' | 'completed' | 'archived'; createdAt: number;
+  notes?: string; progression?: Progression; pausedOn?: string; pauses?: { from: string; to: string; weeks: number }[]; status: 'active' | 'completed' | 'archived'; createdAt: number;
 }
 
 export type WorkoutStatus = 'scheduled' | 'completed' | 'missed' | 'skipped';

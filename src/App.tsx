@@ -10,11 +10,12 @@ import Research from './features/research/Research.tsx';
 import Nutrition from './features/nutrition/Nutrition.tsx';
 import Analytics from './features/analytics/Analytics.tsx';
 import Calendar from './features/calendar/Calendar.tsx';
+import Setup from './features/settings/Setup.tsx';
 import Dashboard from './features/dashboard/Dashboard.tsx';
 
 const SECTIONS = ['Dashboard','Programme','Calendar','Workout','Exercises','Nutrition','Analytics','Research','Settings'] as const;
 type Section = typeof SECTIONS[number];
-const fromHash = (): Section => (SECTIONS.find(s => s.toLowerCase() === location.hash.slice(2)) ?? 'Dashboard');
+const fromHash = (): Section => { const h = location.hash.replace(/^#\/?/, '').toLowerCase(); return SECTIONS.find(s => s.toLowerCase() === h) ?? 'Dashboard'; };
 
 export default function App() {
   const settings = useLiveQuery(() => db.settings.get('settings'));
@@ -33,6 +34,7 @@ export default function App() {
   }, [settings]);
 
   if (!settings) return null;
+  if (!settings.setupComplete) return <Setup />;
   return (
     <div className="app">
       <nav className="nav" aria-label="Main">

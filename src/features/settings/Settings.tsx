@@ -1,5 +1,6 @@
 import { updateSettings } from '../../db/db.ts';
 import type { ExperienceLevel, Strategy, UserSettings } from '../../core/types/index.ts';
+import DataPanel from './DataPanel.tsx';
 import { STRATEGY_LABEL, allowedStrategies } from '../../core/progression/strategies.ts';
 
 const LEVEL_HELP: Record<ExperienceLevel, string> = {
@@ -49,10 +50,7 @@ export default function Settings({ settings: s }: { settings: UserSettings }) {
         </div>
         <button className="btn ghost" onClick={() => updateSettings({ accent: '#DD403A', secondary: '#F4D35E', surface: '#3E363F', background: '#F6FFF8' })}>Reset colours</button>
       </div>
-      <div className="card">
-        <h2>Data</h2>
-        <p className="muted">Import / export and research documents arrive in later phases. All data is stored locally on this device.</p>
-      </div>
+      <DataPanel />
     </>
   );
 }

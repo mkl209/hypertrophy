@@ -22,7 +22,7 @@ export default function Feed({ d, history, exercises, level, enabled, defaultStr
   onApply: (exId: string, rec: Rec) => void; onStart: () => void; onBack: () => void;
 }) {
   const meso = useLiveQuery(() => (d.mesocycleId ? db.mesocycles.get(d.mesocycleId) : undefined), [d.mesocycleId]);
-  const fb = useLiveQuery(() => db.feedback.orderBy('createdAt').last(), []);
+  const fb = useLiveQuery(async () => (await db.feedback.toArray()).sort((a, b) => b.createdAt - a.createdAt)[0], []);
   const [applied, setApplied] = useState<Record<string, boolean>>({});
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
   const readiness = assessReadiness(d.checkin);

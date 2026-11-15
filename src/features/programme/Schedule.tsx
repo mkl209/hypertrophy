@@ -4,6 +4,7 @@ import { db } from '../../db/db.ts';
 import { addDays, diffDays, startOfWeekMonday, todayISO, weekdayMon0, isValidISODate } from '../../core/calendar/dates.ts';
 import type { ScheduledWorkout, WorkoutTemplate } from '../../core/types/index.ts';
 import { DAYS } from '../../ui/util.ts';
+import PauseControl from './PauseControl.tsx';
 import { describeProgression } from '../../core/progression/strategies.ts';
 
 export function WorkoutCard({ w, t, today, actions }: { w: ScheduledWorkout; t?: WorkoutTemplate; today: string; actions?: boolean }) {
@@ -50,14 +51,14 @@ export default function Schedule({ selected, onSelect }: { selected: string; onS
       <div className="card">
         <div className="row" style={{ justifyContent: 'space-between' }}>
           <div><h2 style={{ margin: 0 }}>{meso.name}</h2><span className="muted">Starts {meso.startDate} · {meso.weeks} weeks · {work.length} sessions · {done} completed · {meso.pattern}</span><div className="muted sm2">{describeProgression(meso.progression)}</div></div>
-          <div className="row"><button className="btn ghost" onClick={() => db.mesocycles.update(meso.id, { status: 'completed' })}>Mark complete</button>
+          <div className="row"><PauseControl meso={meso} work={work} /><button className="btn ghost" onClick={() => db.mesocycles.update(meso.id, { status: 'completed' })}>Mark complete</button>
             <button className="btn ghost" onClick={() => { if (confirm('Archive this block? Its data is kept.')) db.mesocycles.update(meso.id, { status: 'archived' }); }}>Archive</button></div>
         </div>
       </div>
       <div className="gridwrap"><div className="grid" style={{ gridTemplateColumns: `90px repeat(${meso.weeks}, minmax(210px, 1fr))` }}>
         <div />
         {Array.from({ length: meso.weeks }, (_, w) => (
-          <div key={w} className={`gh ${w === curWeek ? 'cur' : ''}`}><strong>W{w + 1} · {micros.find(m => m.id === meso.sequence[w])?.name}</strong><div className="muted">{addDays(first, w * 7).slice(5)} → {addDays(first, w * 7 + 6).slice(5)}</div></div>
+          <div key={w} className={`gh ${w === curWeek ? 'cur' : ''}`}><strong>W{w + 1} · {micros.find(m => m.id === meso.sequence[w])?.name ?? 'Paused'}</strong><div className="muted">{addDays(first, w * 7).slice(5)} → {addDays(first, w * 7 + 6).slice(5)}</div></div>
         ))}
         {rows.map(d => (<Fragment key={d}>
           <div key={`l${d}`} className="gl">{DAYS[d].slice(0, 3)}</div>
