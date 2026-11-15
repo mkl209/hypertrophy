@@ -269,6 +269,33 @@ details[open] > :not(summary) { animation:fadeIn .3s var(--ease) both }
 .dot.s-overdue, .dot.s-missed { background:color-mix(in srgb, var(--danger) 18%, transparent); border-color:color-mix(in srgb, var(--danger) 50%, transparent) }
 .dot.s-skipped { opacity:.6 }
 
+/* ---------- multi-select dropdown ---------- */
+@keyframes msIn { from { opacity:0; transform:translateY(-6px) scale(.98) } to { opacity:1; transform:none } }
+.ms { position:relative; display:flex; flex-direction:column; gap:6px; min-width:220px; flex:1 1 220px }
+.row > .ms { align-self:flex-start }
+.ms-label { font-size:.76rem; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); font-weight:670 }
+.ms-btn {
+  all:unset; box-sizing:border-box; display:flex; align-items:center; gap:10px; min-height:44px; padding:8px 13px;
+  border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--raised); color:var(--text); font-weight:500; cursor:pointer;
+  transition:border-color var(--t) var(--ease), box-shadow var(--t) var(--ease), background-color var(--t) var(--ease);
+}
+.ms-btn:hover { border-color:color-mix(in srgb, var(--accent) 35%, var(--border)) }
+.ms-btn:focus-visible, .ms-btn[aria-expanded='true'] { border-color:var(--accent); box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent) }
+.ms-val { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.ms-val.ph { color:var(--muted) }
+.ms-count { flex:none; min-width:22px; padding:1px 7px; border-radius:99px; background:var(--accent); color:#fff; font-size:.72rem; font-weight:700; text-align:center }
+.ms-chev { flex:none; width:16px; height:16px; fill:none; stroke:var(--muted); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; transition:transform .25s var(--ease) }
+.ms-btn[aria-expanded='true'] .ms-chev { transform:rotate(180deg) }
+.ms-panel {
+  position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:30; max-height:280px; overflow-y:auto; padding:6px;
+  background:var(--panel); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow-lg);
+  transform-origin:top center; animation:msIn .18s var(--ease) both;
+}
+.ms-opt { padding:0 10px; min-height:40px; border-radius:8px; cursor:pointer; transition:background-color .15s var(--ease) }
+.ms-opt:hover { background:var(--raised) }
+.ms-empty { margin:8px 10px }
+.ms-clear { width:100%; margin-top:6px }
+
 /* ---------- hover interactions (pointer devices only) ---------- */
 @media (hover:hover) and (pointer:fine) {
   .card:hover { border-color:color-mix(in srgb, var(--accent) 22%, var(--border)); box-shadow:var(--shadow-md) }
@@ -305,6 +332,7 @@ details[open] > :not(summary) { animation:fadeIn .3s var(--ease) both }
   main { padding:18px 14px 116px } .top { align-items:flex-start } .top .date { display:none }
   .card { padding:15px } .setrow { grid-template-columns:1fr 1fr 1fr auto } .setrow select { grid-column:1 / -1 } .cald { min-height:64px } .dot { font-size:.6rem }
   .timer { top:6px }
+  .ms { min-width:100%; flex-basis:100% }
 }
 
 /* ---------- accessibility: respect reduced-motion preference ---------- */
