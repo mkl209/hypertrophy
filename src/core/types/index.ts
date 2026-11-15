@@ -98,3 +98,15 @@ export interface WorkoutDraft {
   id: 'current'; scheduledId?: ID; mesocycleId?: ID; templateId?: ID; templateName: string; date: string; startedAt: number;
   stage: 'checkin' | 'feed' | 'log' | 'finish'; checkin?: PreWorkoutCheckIn; exercises: DraftExercise[];
 }
+
+// ---------- Phase 5: nutrition ----------
+export type NutritionGoal = 'bulk' | 'maintain' | 'cut';
+export interface NutritionPhase {
+  id: ID; goal: NutritionGoal; name: string; startDate: string; endDate?: string;
+  calories: number; protein: number; carbs: number; fat: number; fibre?: number; waterMl?: number; weeklyChange?: number; notes?: string;
+}
+export interface FoodEntry { id: ID; date: string; name: string; calories: number; protein: number; carbs: number; fat: number; fibre: number; createdAt: number }
+export interface WaterLog { date: string; ml: number }
+export interface Supplement { id: ID; name: string; dose?: number; unit: string; frequency: string; timing: string; notes?: string; archived: boolean }
+export interface SupplementLog { id: ID; supplementId: ID; date: string; taken: boolean }
+export interface BodyweightEntry { date: string; weight: number; notes?: string }

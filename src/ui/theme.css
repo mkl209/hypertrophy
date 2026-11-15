@@ -50,3 +50,5 @@ main { max-width:1200px }
 details summary { cursor:pointer; min-height:36px }
 .rec { background:var(--bg); border:1px solid var(--border); border-left:4px solid var(--secondary); border-radius:10px; padding:10px; margin-top:6px } .rec.warn { border-left-color:var(--accent) }
 .rec ul { margin:6px 0; padding-left:20px }
+.bar { height:10px; background:var(--border); border-radius:99px; overflow:hidden } .bar div { height:100%; border-radius:99px }
+.tbl { border-collapse:collapse; width:100%; min-width:460px } .tbl th,.tbl td { text-align:left; padding:8px; border-bottom:1px solid var(--border) }

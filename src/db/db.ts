@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import { DEFAULT_MUSCLES, DEFAULT_SETTINGS, type Equipment, type Exercise, type Mesocycle, type Microcycle, type MuscleGroup, type ScheduledWorkout, type CompletedWorkout, type PreWorkoutCheckIn, type PostWorkoutFeedback, type WorkoutDraft, type UserSettings, type WorkoutTemplate } from '../core/types/index.ts';
+import { DEFAULT_MUSCLES, DEFAULT_SETTINGS, type Equipment, type Exercise, type Mesocycle, type Microcycle, type MuscleGroup, type ScheduledWorkout, type CompletedWorkout, type PreWorkoutCheckIn, type PostWorkoutFeedback, type WorkoutDraft, type NutritionPhase, type FoodEntry, type WaterLog, type Supplement, type SupplementLog, type BodyweightEntry, type UserSettings, type WorkoutTemplate } from '../core/types/index.ts';
 
 export class AppDB extends Dexie {
   settings!: Table<UserSettings, string>;
@@ -13,6 +13,12 @@ export class AppDB extends Dexie {
   checkins!: Table<PreWorkoutCheckIn, string>;
   feedback!: Table<PostWorkoutFeedback, string>;
   drafts!: Table<WorkoutDraft, string>;
+  phases!: Table<NutritionPhase, string>;
+  foods!: Table<FoodEntry, string>;
+  water!: Table<WaterLog, string>;
+  supplements!: Table<Supplement, string>;
+  suppLogs!: Table<SupplementLog, string>;
+  weights!: Table<BodyweightEntry, string>;
   constructor() {
     super('hypertrophy-coach');
     // Later phases add tables via db.version(2).stores({...}); never edit a shipped version.
@@ -32,6 +38,14 @@ export class AppDB extends Dexie {
       checkins: 'id, date',
       feedback: 'id, workoutId',
       drafts: 'id'
+    });
+    this.version(4).stores({
+      phases: 'id, startDate',
+      foods: 'id, date',
+      water: 'date',
+      supplements: 'id',
+      suppLogs: 'id, date, supplementId',
+      weights: 'date'
     });
   }
 }
