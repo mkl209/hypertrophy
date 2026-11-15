@@ -334,6 +334,48 @@ input[type=range].ci-range:focus-visible::-moz-range-thumb { box-shadow:0 0 0 4p
   input[type=range].ci-range::-moz-range-thumb { width:18px; height:18px }
 }
 
+/* ---------- compact logger: append at the END of your stylesheet ---------- */
+.logger .card { padding: 8px 10px; margin-bottom: 8px }
+
+.logger .timer { padding: 4px 10px; margin-bottom: 6px; gap: 8px }
+
+.lg-head { display: flex; align-items: center; gap: 4px }
+.logger .card h2 {
+  flex: 1; min-width: 0; margin: 0; font-size: .9rem; font-weight: 650;
+  text-transform: none; letter-spacing: 0; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.logger .lg-head .btn.sm { min-height: 28px; padding: 0 8px }
+.lg-meta { font-size: .74rem; line-height: 1.3; margin: 2px 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+
+/* one tight row per set: [type] [weight] [reps] [RIR] [log] [x] */
+.logger .setrow,
+.logger .setrow { grid-template-columns: 38px 1fr 1fr 46px 44px 18px; gap: 4px; margin: 3px 0; padding: 3px; border-radius: 8px }
+.logger .setrow input { min-height: 34px; font-size: .95rem; padding: 2px 4px }
+.logger .setrow .btn { min-height: 34px; min-width: 0; padding: 0 }
+.logger .setrow .kind { padding: 0; font-size: .78rem; font-weight: 700 }
+.logger .setrow .kind.k-warmup { color: var(--secondary) }
+.logger .setrow .kind.k-drop { color: var(--info) }
+.logger .setrow .kind.k-failure { color: var(--danger) }
+.logger .setrow .rm { all: unset; cursor: pointer; text-align: center; color: var(--muted); font-size: 1rem; line-height: 1 }
+.logger .setrow .rm:hover { color: var(--danger) }
+
+.lg-more { margin-top: 2px }
+.lg-more summary { min-height: 24px; font-size: .76rem }
+.lg-more .row { margin: 4px 0 }
+.lg-more label { margin-top: 4px }
+
+.lg-foot { display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
+.lg-foot select { flex: 1 1 160px; min-width: 0 }
+.lg-err { flex-basis: 100%; margin: 0 }
+
+@media (max-width: 760px) {
+  .logger .setrow { grid-template-columns: 38px 1fr 1fr 42px 42px 16px }
+}
+@media (pointer: coarse) {
+  .logger .setrow input, .logger .setrow .btn { min-height: 40px }
+  .logger .lg-head .btn.sm { min-height: 32px }
+}
 /* ---------- mobile ---------- */
 @media (max-width:760px) {
   .app { grid-template-columns:1fr }
