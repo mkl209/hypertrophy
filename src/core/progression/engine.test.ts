@@ -82,6 +82,22 @@ test('hybrid progression combines double progression with volume increases and d
   assert.equal(deload.sets, 2);
   assert.equal(deload.setsChange, 'deload');
 });
+
+test('muscle-specific volume is integrated with ordinary progression and respects recovery', () => {
+  const plan = { extraSets: 2, reasons: ['Chest is below its preferred weekly minimum.'] };
+  const up = recommend(ctx({ muscleVolumePlan: plan }));
+  assert.equal(up.sets, 5);
+  assert.equal(up.setsChange, 'increase');
+  assert.ok(up.reasons.some(x => x.includes('preferred weekly minimum')));
+  const held = recommend(ctx({ muscleVolumePlan: plan, readiness: assessReadiness(ci({ sleepHours: 4.5, stress: 5, mentalFatigue: 5 })) }));
+  assert.equal(held.sets, 3);
+  const noHistory = recommend(ctx({ sessions: [], muscleVolumePlan: plan }));
+  assert.equal(noHistory.sets, 5);
+  const deload = recommend(ctx({ progression: { strategy: 'hybrid', volume: { weeklySetChange: 1, maxExtraSets: 2, deloadLastWeek: true } }, weekIndex: 4, muscleVolumePlan: plan }));
+  assert.equal(deload.setsChange, 'deload');
+  assert.equal(deload.sets, 2);
+});
+
 test('beginners cannot select volume or hybrid progression', () => {
   assert.ok(!allowedStrategies('beginner').includes('volume'));
   assert.ok(!allowedStrategies('beginner').includes('hybrid'));

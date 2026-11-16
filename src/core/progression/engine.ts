@@ -8,6 +8,7 @@ export interface Ctx {
   sessions: PrevSession[]; // newest first, working sets only
   readiness: Readiness;
   lastFeedback?: { difficulty: 'easy' | 'appropriate' | 'hard'; fatigue: number; performance: 'below' | 'met' | 'exceeded'; soreness?: number; workload?: number };
+  muscleVolumePlan?: { extraSets: number; reasons: string[] };
   weekIndex: number; totalWeeks: number; step?: number;
 }
 export type Action = 'start' | 'manual' | 'increase_load' | 'add_reps' | 'maintain' | 'hold_caution';
@@ -28,7 +29,10 @@ export function recommend(c: Ctx): Rec {
   const per = (n: number, f: (s: PrevSet) => Target): Target[] => Array.from({ length: n }, (_, i) => f(last![Math.min(i, last!.length - 1)]));
 
   if (!last || last.length === 0) {
-    return { ...base, summary: `No history yet. Choose a load that leaves about ${p.rir} reps in reserve.`, reasons: ['There is no earlier record of this exercise.'], research: ['rir-range', 'rir-accuracy'], targets: Array.from({ length: p.sets }, () => ({ weight: null, repMin: p.repMin, repMax: p.repMax })) };
+    const deload = (prog.strategy === 'volume' || prog.strategy === 'hybrid') && prog.volume?.deloadLastWeek && c.totalWeeks > 1 && c.weekIndex === c.totalWeeks - 1;
+    const extra = c.muscleVolumePlan && prog.strategy !== 'manual' && r.level !== 'low' && r.level !== 'caution' && !deload ? Math.max(0, c.muscleVolumePlan.extraSets) : 0;
+    const sets = deload ? Math.max(1, Math.round(p.sets / 2)) : p.sets + extra;
+    return { ...base, sets, setsChange: deload ? 'deload' : extra > 0 ? 'increase' : 'none', summary: `No history yet. Choose a load that leaves about ${p.rir} reps in reserve.`, reasons: ['There is no earlier record of this exercise.', ...(extra > 0 ? c.muscleVolumePlan?.reasons ?? [] : []), ...(deload ? [`Deload week: sets reduced from ${p.sets} to ${sets}.`] : [])], research: ['rir-range', 'rir-accuracy'], targets: Array.from({ length: sets }, () => ({ weight: null, repMin: p.repMin, repMax: p.repMax })) };
   }
   const same = (s: PrevSet): Target => ({ weight: s.weight, repMin: Math.min(s.reps, p.repMax), repMax: Math.min(s.reps, p.repMax) });
   if (prog.strategy === 'manual') return { ...base, action: 'manual', summary: 'Manual progression: no automatic change suggested.', reasons: [`Last time: ${fmt(last)}.`], targets: per(p.sets, same), heuristics: ['You chose to control progression yourself.'] };
@@ -85,7 +89,18 @@ export function recommend(c: Ctx): Rec {
   }
 
   let sets = p.sets; let setsChange: Rec['setsChange'] = 'none';
-  if ((prog.strategy === 'volume' || prog.strategy === 'hybrid') && prog.volume) {
+  if (c.muscleVolumePlan) {
+    if (prog.volume?.deloadLastWeek && c.totalWeeks > 1 && c.weekIndex === c.totalWeeks - 1) {
+      sets = Math.max(1, Math.round(p.sets / 2)); setsChange = 'deload'; reasons.push(`Deload week: sets reduced from ${p.sets} to ${sets}.`);
+    } else {
+      const extra = hold.length ? 0 : Math.max(0, c.muscleVolumePlan.extraSets);
+      if (extra > 0) { sets += extra; setsChange = 'increase'; reasons.push(...c.muscleVolumePlan.reasons); }
+      else if (c.muscleVolumePlan.reasons.length) reasons.push(...c.muscleVolumePlan.reasons);
+    }
+    if (targets.length !== sets) targets = Array.from({ length: sets }, (_, i) => targets[Math.min(i, targets.length - 1)]);
+    heuristics.push('Muscle-specific volume is allocated only where the projected weekly total is below your minimum, and never beyond a configured maximum.');
+    research.push('volume-landmarks', 'volume-dose');
+  } else if ((prog.strategy === 'volume' || prog.strategy === 'hybrid') && prog.volume) {
     const v = prog.volume;
     if (v.deloadLastWeek && c.totalWeeks > 1 && c.weekIndex === c.totalWeeks - 1) { sets = Math.max(1, Math.round(p.sets / 2)); setsChange = 'deload'; reasons.push(`Deload week: sets reduced from ${p.sets} to ${sets}.`); }
     else {

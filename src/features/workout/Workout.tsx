@@ -65,7 +65,7 @@ export default function Workout() {
     <>
       <div className="row" style={{ justifyContent: 'space-between' }}><strong>{draft.templateName} · {draft.date}</strong><button className="btn ghost sm" onClick={discard}>Discard</button></div>
       {draft.stage === 'checkin' && <CheckIn date={today} scheduledId={draft.scheduledId} onDone={c => update(d => ({ ...d, checkin: c, stage: 'feed' }))} />}
-      {draft.stage === 'feed' && <Feed d={draft} history={history} exercises={exercises} level={settings.experience} enabled={settings.recommendationsEnabled} defaultStrategy={settings.defaultStrategy ?? 'double'} unit={unit} onApply={applyRec} onStart={() => update(d => ({ ...d, stage: 'log' }))} onBack={() => update(d => ({ ...d, stage: 'checkin' }))} />}
+      {draft.stage === 'feed' && <Feed d={draft} history={history} exercises={exercises} settings={settings} level={settings.experience} enabled={settings.recommendationsEnabled} defaultStrategy={settings.defaultStrategy ?? 'double'} unit={unit} onApply={applyRec} onStart={() => update(d => ({ ...d, stage: 'log' }))} onBack={() => update(d => ({ ...d, stage: 'checkin' }))} />}
       {draft.stage === 'log' && <Logger d={draft} setD={update} prev={prev} exercises={exercises} unit={unit} onFinish={() => update(d => ({ ...d, stage: 'finish' }))} />}
       {draft.stage === 'finish' && <Finish d={draft} history={history} unit={unit} onBack={() => update(d => ({ ...d, stage: 'log' }))} onSaved={() => { setDraft(null); setMsg('Workout saved.'); setTab('History'); }} />}
     </>

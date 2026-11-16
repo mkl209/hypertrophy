@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/db.ts';
-import { addDays, diffDays, weekIndex } from '../../core/calendar/dates.ts';
+import { addDays, diffDays, startOfWeekMonday, weekIndex } from '../../core/calendar/dates.ts';
 import { recommend, type PrevSession, type Rec } from '../../core/progression/engine.ts';
-import { effectiveRir } from '../../core/workout/stats.ts';
+import { effectiveRir, isWorking } from '../../core/workout/stats.ts';
+import { allocateMuscleVolume } from '../../core/progression/muscleVolume.ts';
 import { assessReadiness, latestFor } from '../../core/progression/readiness.ts';
 import { FINDING_BY_ID } from '../../research/findings.ts';
-import type { CompletedWorkout, Exercise, ExperienceLevel, PostWorkoutFeedback, Strategy, WorkoutDraft } from '../../core/types/index.ts';
+import type { CompletedWorkout, Exercise, ExperienceLevel, PostWorkoutFeedback, Strategy, UserSettings, WorkoutDraft } from '../../core/types/index.ts';
 
 function sessionsFor(history: CompletedWorkout[], exerciseId: string): PrevSession[] {
   return [...history].sort((a, b) => b.finishedAt - a.finishedAt).flatMap(w => {
@@ -26,12 +27,17 @@ function feedbackFor(history: CompletedWorkout[], all: PostWorkoutFeedback[], ex
 const rng = (t: { weight: number | null; repMin: number; repMax: number }, unit: string) =>
   `${t.weight === null ? 'heavier' : `${t.weight} ${unit}`} × ${t.repMin === t.repMax ? t.repMin : `${t.repMin}–${t.repMax}`}`;
 
-export default function Feed({ d, history, exercises, level, enabled, defaultStrategy, unit, onApply, onStart, onBack }: {
-  d: WorkoutDraft; history: CompletedWorkout[]; exercises: Exercise[]; level: ExperienceLevel; enabled: boolean; defaultStrategy: Strategy; unit: string;
+export default function Feed({ d, history, exercises, settings, level, enabled, defaultStrategy, unit, onApply, onStart, onBack }: {
+  d: WorkoutDraft; history: CompletedWorkout[]; exercises: Exercise[]; settings: UserSettings; level: ExperienceLevel; enabled: boolean; defaultStrategy: Strategy; unit: string;
   onApply: (exId: string, rec: Rec) => void; onStart: () => void; onBack: () => void;
 }) {
   const meso = useLiveQuery(() => (d.mesocycleId ? db.mesocycles.get(d.mesocycleId) : undefined), [d.mesocycleId]);
   const feedback = useLiveQuery(() => db.feedback.toArray(), []) ?? [];
+  const weekStart = startOfWeekMonday(d.date);
+  const weekEnd = addDays(weekStart, 6);
+  const scheduledThisWeek = useLiveQuery(() => db.scheduled.where('date').between(weekStart, weekEnd, true, true).filter(w => w.status === 'scheduled' && w.date >= d.date && w.id !== d.scheduledId).toArray(), [weekStart, weekEnd, d.date, d.scheduledId]) ?? [];
+  const templates = useLiveQuery(() => db.templates.toArray(), []) ?? [];
+  const allExercises = useLiveQuery(() => db.exercises.toArray(), []) ?? exercises;
   const ydate = addDays(d.checkin?.date ?? d.date, -1);
   const yRows = useLiveQuery(() => db.checkins.where('date').equals(ydate).toArray(), [ydate]);
   const yesterday = yRows ? latestFor(yRows, ydate) : undefined;
@@ -39,6 +45,19 @@ export default function Feed({ d, history, exercises, level, enabled, defaultStr
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
   const readiness = assessReadiness(d.checkin, yesterday);
   const prog = meso?.progression ?? { strategy: defaultStrategy };
+  const musclePreferences = settings.muscleVolumePreferences ?? {};
+  const hasMusclePreferences = Object.values(musclePreferences).some(p => p.min !== undefined || p.max !== undefined);
+  const projectedBase: Record<string, number> = {};
+  const exerciseById = new Map(allExercises.map(x => [x.id, x]));
+  const addExerciseVolume = (exerciseId: string, sets: number) => {
+    const ex = exerciseById.get(exerciseId); if (!ex || sets <= 0) return;
+    for (const id of ex.primaryMuscles) projectedBase[id] = (projectedBase[id] ?? 0) + sets;
+    for (const id of ex.secondaryMuscles) if (!ex.primaryMuscles.includes(id)) projectedBase[id] = (projectedBase[id] ?? 0) + sets * settings.secondaryMuscleWeight;
+  };
+  for (const w of history.filter(w => w.date >= weekStart && w.date <= weekEnd)) for (const e of w.exercises) addExerciseVolume(e.exerciseId, e.sets.filter(isWorking).length);
+  for (const sw of scheduledThisWeek) { const template = templates.find(t => t.id === sw.templateId); for (const e of template?.exercises ?? []) addExerciseVolume(e.exerciseId, e.sets); }
+  const volumeExercises = d.exercises.map(e => { const ex = exerciseById.get(e.exerciseId); return { id: e.id, sets: e.prescribed.sets, primaryMuscles: ex?.primaryMuscles ?? [], secondaryMuscles: ex?.secondaryMuscles ?? [] }; });
+  const volumeAllocation = hasMusclePreferences ? allocateMuscleVolume(volumeExercises, projectedBase, musclePreferences, settings.secondaryMuscleWeight, prog.volume?.maxExtraSets ?? 2) : undefined;
   const wk = meso ? Math.max(0, weekIndex(meso.startDate, d.date)) : 0;
 
   return (
@@ -54,6 +73,7 @@ export default function Feed({ d, history, exercises, level, enabled, defaultStr
         const rec = recommend({
           progression: prog, level, prescribed: e.prescribed, sessions, readiness,
           lastFeedback: fb ? { difficulty: fb.difficulty, fatigue: fb.fatigue, performance: fb.performance, soreness: fb.soreness, workload: fb.workload } : undefined,
+          muscleVolumePlan: volumeAllocation ? { extraSets: volumeAllocation.extraSets[e.id] ?? 0, reasons: volumeAllocation.reasons[e.id] ?? [] } : undefined,
           weekIndex: wk, totalWeeks: meso?.weeks ?? 0, step: exercises.find(x => x.id === e.exerciseId)?.defaults.increment
         });
         return (
@@ -79,6 +99,7 @@ export default function Feed({ d, history, exercises, level, enabled, defaultStr
               </div>)}
           </div>);
       })}
+      {hasMusclePreferences && <p className="muted sm2">Muscle-specific volume uses this week's completed sets plus remaining scheduled sessions and this workout's prescribed sets. It adds sets only to address configured minimums, while treating configured maximums as hard guardrails and respecting recovery/performance checks.</p>}
       <p className="muted sm2">Accepting only pre-fills your logging screen. You can change anything while logging, and nothing in your programme is rewritten.</p>
       <div className="row"><button className="btn" onClick={onStart}>Start logging</button><button className="btn ghost" onClick={onBack}>Back</button></div>
     </div>

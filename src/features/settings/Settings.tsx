@@ -46,7 +46,7 @@ export default function Settings({ settings: s }: { settings: UserSettings }) {
       </div>
       <div className="card">
         <h2>Muscle volume preferences</h2>
-        <p className="muted sm2">Set a preferred weekly range of weighted sets for each muscle. The minimum is your lower reference point; the maximum is an upper guardrail, not a target the programme must reach. The lower bound is the starting reference; only increase volume when performance and recovery support it. The upper bound is a ceiling, not a target to chase. These preferences are shown in muscle-volume analytics and do not automatically change workout sets.</p>
+        <p className="muted sm2">Set a preferred weekly range of weighted sets for each muscle. The minimum is your lower reference point; the maximum is an upper guardrail, not a target the programme must reach. The lower bound is the starting reference; only increase volume when performance and recovery support it. The upper bound is a ceiling, not a target to chase. These preferences guide progression recommendations using completed work, remaining scheduled sessions and the current workout's planned sets. Extra sets are allocated only to muscles below their minimum, and only when recovery and performance allow.</p>
         <div className="item col" style={{ gap: 8 }}>
           <div className="row" style={{ margin: 0, fontWeight: 600 }}><span style={{ flex: 1 }}>Muscle</span><span style={{ width: 100 }}>Min / week</span><span style={{ width: 100 }}>Max / week</span></div>
           {muscles.map(m => { const pref = s.muscleVolumePreferences?.[m.id]; const invalid = pref?.min !== undefined && pref?.max !== undefined && pref.min > pref.max; return (
