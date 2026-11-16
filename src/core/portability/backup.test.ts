@@ -37,3 +37,12 @@ test('export, reset, import restores everything', () => {
   const restored = applyImport(emptyTables(), validateBackup(b).backup!, 'replace');
   assert.deepEqual(restored, { ...emptyTables(), exercises: orig.exercises, weights: orig.weights });
 });
+
+test('running sessions are included in backup export and restore', () => {
+  const original = tables();
+  original.runs = [{ id: 'run-1', date: '2026-11-16', distanceKm: 5, durationMinutes: 28, effort: 3 }];
+  const backup = validateBackup(JSON.parse(JSON.stringify(buildBackup(original, 'x'))));
+  assert.equal(backup.ok, true);
+  const restored = applyImport(emptyTables(), backup.backup!, 'replace');
+  assert.deepEqual(restored.runs, original.runs);
+});

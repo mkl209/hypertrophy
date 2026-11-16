@@ -136,3 +136,6 @@ export interface Supplement {
 export interface SupplementLog { id: ID; supplementId: ID; date: string; taken: boolean; doseTaken?: number; unit?: string; time?: string; caffeineMg?: number; notes?: string }
 /** One entry per date. `bodyFat` is an optional estimated percentage (e.g. 15.2). */
 export interface BodyweightEntry { date: string; weight: number; bodyFat?: number; notes?: string }
+
+/** Standalone running activity; stored separately from resistance-training sessions. */
+export interface RunSession { id: ID; date: string; distanceKm: number; durationMinutes: number; effort: number; notes?: string; createdAt: number }

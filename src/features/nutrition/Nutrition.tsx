@@ -18,7 +18,13 @@ export default function Nutrition() {
   const dated = tab === 'Today' || tab === 'Week' || tab === 'Supplements';
   return (
     <>
-      <div className="tabs">{TABS.map(t => <button key={t} aria-current={t === tab ? 'page' : undefined} onClick={() => setTab(t)}>{t}</button>)}</div>
+      <div className="card nutrition-hub">
+        <h2>Nutrition workspace</h2>
+        <p className="muted">Separate areas for tracking intake, planning targets and monitoring body metrics.</p>
+        <div className="nutrition-group"><div className="ci-sec">Daily intake</div><div className="tabs">{TABS.slice(0, 2).map(t => <button key={t} aria-current={t === tab ? 'page' : undefined} onClick={() => setTab(t)}>{t === 'Today' ? 'Daily log' : 'Meal planning'}</button>)}</div></div>
+        <div className="nutrition-group"><div className="ci-sec">Progress &amp; targets</div><div className="tabs">{TABS.slice(2, 4).map(t => <button key={t} aria-current={t === tab ? 'page' : undefined} onClick={() => setTab(t)}>{t}</button>)}</div></div>
+        <div className="nutrition-group"><div className="ci-sec">Body metrics</div><div className="tabs">{TABS.slice(4).map(t => <button key={t} aria-current={t === tab ? 'page' : undefined} onClick={() => setTab(t)}>{t}</button>)}</div></div>
+      </div>
       {dated && <div className="row"><button className="btn ghost sm" aria-label="Previous day" onClick={() => setDate(addDays(date, tab === 'Week' ? -7 : -1))}>←</button>
         <input type="date" value={date} onChange={e => isValidISODate(e.target.value) && setDate(e.target.value)} />
         <button className="btn ghost sm" aria-label="Next day" onClick={() => setDate(addDays(date, tab === 'Week' ? 7 : 1))}>→</button>

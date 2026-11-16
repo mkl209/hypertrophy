@@ -2,7 +2,7 @@ export const BACKUP_SCHEMA_VERSION = 1;
 /** Every table that is backed up, with its key field. Transient workout drafts are not backed up. */
 export const TABLE_KEYS = {
   settings: 'id', muscles: 'id', exercises: 'id', templates: 'id', microcycles: 'id', mesocycles: 'id', scheduled: 'id', completed: 'id',
-  checkins: 'id', feedback: 'id', phases: 'id', foods: 'id', water: 'date', supplements: 'id', suppLogs: 'id', weights: 'date'
+  checkins: 'id', feedback: 'id', phases: 'id', foods: 'id', water: 'date', supplements: 'id', suppLogs: 'id', weights: 'date', runs: 'id'
 } as const;
 export type TableName = keyof typeof TABLE_KEYS;
 export const TABLE_NAMES = Object.keys(TABLE_KEYS) as TableName[];

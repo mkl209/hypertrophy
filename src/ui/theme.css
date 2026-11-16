@@ -392,3 +392,10 @@ input[type=range].ci-range:focus-visible::-moz-range-thumb { box-shadow:0 0 0 4p
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important }
 }
+
+/* Nutrition workspace: keep each group visually distinct instead of one crowded tab strip. */
+.nutrition-hub { padding-bottom:10px }
+.nutrition-hub > p { margin:0 0 10px }
+.nutrition-group { padding-top:2px; margin-top:8px }
+.nutrition-group + .nutrition-group { border-top:1px solid var(--border); padding-top:8px }
+.nutrition-group .tabs { margin:0; display:flex; width:max-content; max-width:100%; flex-wrap:wrap }

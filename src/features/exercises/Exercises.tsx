@@ -14,6 +14,10 @@ export default function Exercises() {
   const [edit, setEdit] = useState<Exercise | null>(null);
   const [q, setQ] = useState('');
   const [showArchived, setShowArchived] = useState(false);
+  const [muscleFilter, setMuscleFilter] = useState('');
+  const [equipmentFilter, setEquipmentFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [patternFilter, setPatternFilter] = useState('');
   const [err, setErr] = useState('');
   const mname = (id: string) => muscles.find(m => m.id === id)?.name ?? id;
 
@@ -26,7 +30,12 @@ export default function Exercises() {
     await db.exercises.put({ ...edit, name: edit.name.trim(), updatedAt: Date.now() });
     setEdit(null); setErr('');
   };
-  const list = exercises.filter(e => (showArchived || !e.archived) && e.name.toLowerCase().includes(q.toLowerCase())).sort((a, b) => a.name.localeCompare(b.name));
+  const list = exercises.filter(e => (showArchived || !e.archived)
+    && e.name.toLowerCase().includes(q.toLowerCase())
+    && (!muscleFilter || e.primaryMuscles.includes(muscleFilter) || e.secondaryMuscles.includes(muscleFilter))
+    && (!equipmentFilter || e.equipment.includes(equipmentFilter as typeof EQUIPMENT[number]))
+    && (!typeFilter || e.mechanic === typeFilter)
+    && (!patternFilter || e.movementPattern === patternFilter)).sort((a, b) => a.name.localeCompare(b.name));
   const setDef = (k: keyof Exercise['defaults'], v: number) => setEdit(e => e && ({ ...e, defaults: { ...e.defaults, [k]: v } }));
 
   if (edit) return (
@@ -86,6 +95,10 @@ export default function Exercises() {
       <h2>Exercise library</h2>
       <div className="row">
         <label>Search<input type="text" value={q} onChange={e => setQ(e.target.value)} /></label>
+        <label>Muscle group<select value={muscleFilter} onChange={e => setMuscleFilter(e.target.value)}><option value="">All muscle groups</option>{muscles.filter(m => !m.archived).sort((a,b) => a.name.localeCompare(b.name)).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label>
+        <label>Equipment<select value={equipmentFilter} onChange={e => setEquipmentFilter(e.target.value)}><option value="">All equipment</option>{EQUIPMENT.map(x => <option key={x} value={x}>{x}</option>)}</select></label>
+        <label>Exercise type<select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}><option value="">All types</option><option value="compound">Compound</option><option value="isolation">Isolation</option></select></label>
+        <label>Movement pattern<select value={patternFilter} onChange={e => setPatternFilter(e.target.value)}><option value="">All patterns</option>{[...new Set(exercises.map(e => e.movementPattern).filter((x): x is string => !!x))].sort().map(x => <option key={x} value={x}>{x}</option>)}</select></label>
         <label className="chk"><input type="checkbox" checked={showArchived} onChange={e => setShowArchived(e.target.checked)} />Show archived</label>
         <button className="btn" onClick={() => setEdit(blank())}>+ New exercise</button>
       </div>

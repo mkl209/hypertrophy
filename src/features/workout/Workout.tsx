@@ -12,10 +12,11 @@ import Feed from './Feed.tsx';
 import Logger from './Logger.tsx';
 import Finish from './Finish.tsx';
 import History from './History.tsx';
+import Run from './Run.tsx';
 
 export default function Workout() {
   const today = todayISO();
-  const [tab, setTab] = useState<'Train' | 'Daily' | 'History'>('Train');
+  const [tab, setTab] = useState<'Train' | 'Run' | 'Daily' | 'History'>('Train');
   const [draft, setDraft] = useState<WorkoutDraft | null | undefined>(undefined);
   const [msg, setMsg] = useState('');
   const settings = useLiveQuery(() => db.settings.get('settings'));
@@ -72,9 +73,9 @@ export default function Workout() {
   );
   return (
     <>
-      <div className="tabs">{(['Train', 'Daily', 'History'] as const).map(t => <button key={t} aria-current={t === tab ? 'page' : undefined} onClick={() => setTab(t)}>{t}</button>)}</div>
+      <div className="tabs">{(['Train', 'Run', 'Daily', 'History'] as const).map(t => <button key={t} aria-current={t === tab ? 'page' : undefined} onClick={() => setTab(t)}>{t}</button>)}</div>
       {msg && <p role="status" className="chip" style={{ display: 'inline-block' }}>{msg}</p>}
-      {tab === 'History' ? <History /> : tab === 'Daily' ? <Daily /> : (
+      {tab === 'Run' ? <Run /> : tab === 'History' ? <History /> : tab === 'Daily' ? <Daily /> : (
         <div className="card"><h2>Start a workout</h2>
           <p className="muted sm2">{todayCheckin ? 'Today’s check-in is done and will be used.' : 'No check-in yet today. You’ll be asked when you start, or fill it in on the Daily tab.'}</p>
           {[...due].sort((a, b) => a.date.localeCompare(b.date)).map(w => (
