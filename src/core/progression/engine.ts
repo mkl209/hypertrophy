@@ -6,7 +6,8 @@ export interface PrevSession { date: string; sets: PrevSet[] }
 export interface Ctx {
   progression: Progression; level: ExperienceLevel; prescribed: { sets: number; repMin: number; repMax: number; rir: number };
   sessions: PrevSession[]; // newest first, working sets only
-  readiness: Readiness; lastFeedback?: { difficulty: 'easy' | 'appropriate' | 'hard'; fatigue: number; performance: 'below' | 'met' | 'exceeded' };
+  readiness: Readiness;
+  lastFeedback?: { difficulty: 'easy' | 'appropriate' | 'hard'; fatigue: number; performance: 'below' | 'met' | 'exceeded'; soreness?: number; workload?: number };
   weekIndex: number; totalWeeks: number; step?: number;
 }
 export type Action = 'start' | 'manual' | 'increase_load' | 'add_reps' | 'maintain' | 'hold_caution';
@@ -46,16 +47,17 @@ export function recommend(c: Ctx): Rec {
   const declined = drop(sessions[0], sessions[1]);
   const consistent = declined && drop(sessions[1], sessions[2]);
   const fb = c.lastFeedback;
-  const fbBad = !!fb && (fb.difficulty === 'hard' || fb.fatigue >= 4 || fb.performance === 'below');
+  const fbBad = !!fb && (fb.difficulty === 'hard' || fb.fatigue >= 4 || fb.performance === 'below' || (fb.soreness ?? 0) >= 5 || (fb.workload ?? 0) >= 5);
+  const fbEasy = !!fb && !fbBad && fb.difficulty === 'easy' && fb.performance !== 'below' && fb.fatigue <= 2;
 
   const hold: string[] = [];
   if (r.level === 'low') hold.push(`Readiness is lower than usual today (${r.negatives.join(', ')}).`);
-  if (fbBad) hold.push('Your last post-workout feedback said the session was hard, very fatiguing, or below expectations.');
+  if (fbBad) hold.push('Your last post-workout feedback said the session was hard, very fatiguing, very sore, or below expectations.');
   if (belowMin) hold.push(`Last time at least one set fell below your ${p.repMin}-rep minimum.`);
   else if (declined) hold.push('Reps dropped compared with the session before, at the same load.');
   if (harder) hold.push(`Sets were harder than prescribed (average RIR below ${p.rir - 1}).`);
   const flags: string[] = consistent ? ['consistent-underperformance'] : [];
-  const notes: string[] = r.level === 'moderate' ? [`Minor recovery flags today (${r.negatives.join(', ')}); not enough on their own to change the plan.`] : r.level === 'unknown' ? ['No check-in today, so readiness was not considered.'] : [];
+  const notes: string[] = r.level === 'moderate' ? [`Minor recovery flags (${r.negatives.join(', ')}); not enough on their own to change the plan.`] : r.level === 'unknown' ? ['No check-in today, so readiness was not considered.'] : [];
 
   let action: Action; let summary: string; let reasons: string[]; let heuristics: string[]; let research: string[]; let targets: Target[];
   if (hold.length) {
@@ -75,10 +77,11 @@ export function recommend(c: Ctx): Rec {
     reasons = [`You are at the top of your rep range (${fmt(last)}).`, 'To progress further, widen the rep range in the template or switch the mesocycle strategy.'];
     heuristics = ['Rep progression keeps the load fixed and adds reps within the range.']; research = ['overload']; targets = per(p.sets, same);
   } else {
+    const stepUp = fbEasy ? 2 : 1;
     action = 'add_reps'; summary = 'Keep the same weight and add a rep where you can.';
-    reasons = [`Last time: ${fmt(last)}. There is still room in your ${p.repMin}–${p.repMax} range.`, ...notes];
+    reasons = [`Last time: ${fmt(last)}. There is still room in your ${p.repMin}–${p.repMax} range.`, ...(fbEasy ? ['You rated the last session as easy, so the rep target is a little more ambitious.'] : []), ...notes];
     heuristics = ['Add reps before adding load (double progression).']; research = ['overload'];
-    targets = per(p.sets, s => ({ weight: s.weight, repMin: Math.min(s.reps, p.repMax), repMax: Math.min(s.reps + 1, p.repMax) }));
+    targets = per(p.sets, s => ({ weight: s.weight, repMin: Math.min(s.reps, p.repMax), repMax: Math.min(s.reps + stepUp, p.repMax) }));
   }
 
   let sets = p.sets; let setsChange: Rec['setsChange'] = 'none';
