@@ -34,7 +34,7 @@ export function WorkoutCard({ w, t, today, actions }: { w: ScheduledWorkout; t?:
 
 export default function Schedule({ selected, onSelect }: { selected: string; onSelect: (id: string) => void }) {
   const today = todayISO();
-  const mesos = useLiveQuery(() => db.mesocycles.filter(m => m.status !== 'archived').toArray(), []) ?? [];
+  const mesos = useLiveQuery(() => db.mesocycles.toArray(), []) ?? [];
   const templates = useLiveQuery(() => db.templates.toArray(), []) ?? [];
   const micros = useLiveQuery(() => db.microcycles.toArray(), []) ?? [];
   const meso = mesos.find(m => m.id === selected) ?? mesos[0];
@@ -52,7 +52,7 @@ export default function Schedule({ selected, onSelect }: { selected: string; onS
 
   return (
     <>
-      <div className="tabs">{mesos.map(m => <button key={m.id} aria-current={m.id === meso.id ? 'page' : undefined} onClick={() => onSelect(m.id)}>{m.name} <span className="muted">{m.weeks}w</span></button>)}</div>
+      <div className="tabs">{mesos.map(m => <button key={m.id} aria-current={m.id === meso.id ? 'page' : undefined} onClick={() => onSelect(m.id)}>{m.name} <span className="muted">{m.weeks}w{m.status === 'archived' ? ' · archived' : ''}</span></button>)}</div>
       <div className="card cmp">
         <div className="cmp-head">
           <div className="grow">
@@ -63,6 +63,7 @@ export default function Schedule({ selected, onSelect }: { selected: string; onS
             <PauseControl meso={meso} work={work} />
             <button className="btn ghost xs" onClick={() => db.mesocycles.update(meso.id, { status: 'completed' })}>Mark complete</button>
             <button className="btn ghost xs" onClick={() => { if (confirm('Archive this block? Its data is kept.')) db.mesocycles.update(meso.id, { status: 'archived' }); }}>Archive</button>
+            <button className="btn ghost xs" onClick={async () => { if (!confirm(`Permanently delete “${meso.name}”? Its scheduled workouts will be removed. Completed workout history will be kept.`)) return; await db.transaction('rw', db.mesocycles, db.scheduled, async () => { await db.scheduled.where('mesocycleId').equals(meso.id).delete(); await db.mesocycles.delete(meso.id); }); onSelect(''); }}>Delete permanently</button>
           </div>
         </div>
       </div>

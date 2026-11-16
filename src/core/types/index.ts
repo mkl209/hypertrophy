@@ -19,6 +19,8 @@ export interface UserSettings {
   defaultStrategy?: Strategy;
   uiVersion?: number;
   secondaryMuscleWeight: number; // indirect-set contribution, always presented as an estimate
+  /** Preferred weekly weighted-set range per muscle; these are guardrails, not targets to automatically reach. */
+  muscleVolumePreferences?: Record<string, { min?: number; max?: number }>;
 }
 
 export interface MuscleGroup { id: ID; name: string; custom: boolean; archived: boolean }
@@ -75,8 +77,9 @@ export type WorkoutStatus = 'scheduled' | 'completed' | 'missed' | 'skipped';
 export interface ScheduledWorkout { id: ID; mesocycleId: ID; weekIndex: number; date: string; originalDate: string; templateId: ID; status: WorkoutStatus }
 
 // ---------- Phase 3: logging ----------
-export type SetKind = 'warmup' | 'working' | 'drop' | 'failure';
-export interface CompletedSet { id: ID; kind: SetKind; weight: number; reps: number; rir?: number; note?: string }
+export type SetKind = 'warmup' | 'working';
+export type SetTechnique = 'myo-reps';
+export interface CompletedSet { id: ID; kind: SetKind; technique?: SetTechnique; weight: number; reps: number; rir?: number; note?: string }
 /** Snapshot of what was actually done. Never changes when templates or exercises are edited later. */
 export interface CompletedExercise { id: ID; exerciseId: ID; exerciseName: string; prescribed: { sets: number; repMin: number; repMax: number; rir: number }; sets: CompletedSet[]; notes?: string }
 export interface CompletedWorkout {
@@ -93,7 +96,7 @@ export interface PostWorkoutFeedback {
   id: ID; workoutId: ID; pump: number; soreness: number; workload: number; fatigue: number;
   performance: 'below' | 'met' | 'exceeded'; difficulty: 'easy' | 'appropriate' | 'hard'; notes?: string; createdAt: number;
 }
-export interface DraftSet { id: ID; kind: SetKind; weight: string; reps: string; rir: string; done: boolean }
+export interface DraftSet { id: ID; kind: SetKind; technique?: SetTechnique; weight: string; reps: string; rir: string; done: boolean }
 export interface DraftExercise { id: ID; exerciseId: ID; name: string; prescribed: { sets: number; repMin: number; repMax: number; rir: number }; restSec: number; notes?: string; list: DraftSet[] }
 export interface WorkoutDraft {
   id: 'current'; scheduledId?: ID; mesocycleId?: ID; templateId?: ID; templateName: string; date: string; startedAt: number;

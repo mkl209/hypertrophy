@@ -26,7 +26,15 @@ export default function Workout() {
   const todayRows = useLiveQuery(() => db.checkins.where('date').equals(today).toArray(), [today]);
   const todayCheckin = todayRows ? latestFor(todayRows, today) : undefined;
 
-  useEffect(() => { db.drafts.get('current').then(d => setDraft(d ?? null)); }, []);
+  useEffect(() => { db.drafts.get('current').then(d => {
+    if (!d) { setDraft(null); return; }
+    // Migrate an in-progress draft from older set categories: failure becomes working at 0 RIR; drop becomes working.
+    const migrated = { ...d, exercises: d.exercises.map(e => ({ ...e, list: e.list.map(s => {
+      const legacyKind = (s as { kind: string }).kind;
+      return { ...s, kind: legacyKind === 'warmup' ? 'warmup' as const : 'working' as const, rir: legacyKind === 'failure' && !s.rir ? '0' : s.rir, technique: s.technique };
+    }) })) };
+    setDraft(migrated);
+  }); }, []);
   useEffect(() => { if (draft === undefined) return; if (draft) void db.drafts.put(draft); }, [draft]);
   const update = (f: (d: WorkoutDraft) => WorkoutDraft) => setDraft(p => (p ? f(p) : p));
   if (draft === undefined || !settings) return null;

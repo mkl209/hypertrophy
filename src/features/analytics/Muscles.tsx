@@ -25,12 +25,14 @@ export default function Muscles({ d, range }: { d: Data; range: Range }) {
         <label>Weight given to indirect (secondary) sets: <strong>{w}</strong>
           <input type="range" min={0} max={1} step={0.25} value={w} onChange={e => updateSettings({ secondaryMuscleWeight: Number(e.target.value) })} /></label>
         <p className="muted sm2">Weighted sets = direct sets + {w} × indirect sets. This is an estimate based on each exercise’s primary and secondary muscles, not an exact physiological measure. Muscles come from the current exercise definitions.</p>
-        {rows.map(r => (
+        {rows.map(r => {
+          const pref = d.settings.muscleVolumePreferences?.[r.muscleId];
+          return (
           <div key={r.muscleId} style={{ margin: '10px 0' }}>
             <div className="row" style={{ justifyContent: 'space-between', margin: 0 }}><strong>{name(r.muscleId)}</strong><span>{r.direct} direct · {r.indirect} indirect · <strong>{f1(r.weighted)}</strong> weighted</span></div>
             <div className="bar"><div style={{ width: `${(r.weighted / max) * 100}%`, background: 'var(--accent)' }} /></div>
-            <span className="muted sm2">≈ {f1(r.weighted / weeks)} weighted sets/week · trained directly in {r.sessions} session{r.sessions === 1 ? '' : 's'} (≈ {f1(r.sessions / weeks)}/week) over {weeks} week{weeks === 1 ? '' : 's'}</span>
-          </div>))}
+            <span className="muted sm2">≈ {f1(r.weighted / weeks)} weighted sets/week · trained directly in {r.sessions} session{r.sessions === 1 ? '' : 's'} (≈ {f1(r.sessions / weeks)}/week) over {weeks} week{weeks === 1 ? '' : 's'}{pref ? ` · preference ${pref.min ?? '—'}–${pref.max ?? '—'} sets/week` : ''}</span>
+          </div>); })}
       </div>
       <div className="card"><h2>Weekly trend</h2>
         <label>Muscle<select value={chosen} onChange={e => setSel(e.target.value)}>{rows.map(r => <option key={r.muscleId} value={r.muscleId}>{name(r.muscleId)}</option>)}</select></label>

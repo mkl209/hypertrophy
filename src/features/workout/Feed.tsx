@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/db.ts';
 import { addDays, diffDays, weekIndex } from '../../core/calendar/dates.ts';
 import { recommend, type PrevSession, type Rec } from '../../core/progression/engine.ts';
+import { effectiveRir } from '../../core/workout/stats.ts';
 import { assessReadiness, latestFor } from '../../core/progression/readiness.ts';
 import { FINDING_BY_ID } from '../../research/findings.ts';
 import type { CompletedWorkout, Exercise, ExperienceLevel, PostWorkoutFeedback, Strategy, WorkoutDraft } from '../../core/types/index.ts';
@@ -10,7 +11,7 @@ import type { CompletedWorkout, Exercise, ExperienceLevel, PostWorkoutFeedback, 
 function sessionsFor(history: CompletedWorkout[], exerciseId: string): PrevSession[] {
   return [...history].sort((a, b) => b.finishedAt - a.finishedAt).flatMap(w => {
     const ex = w.exercises.find(e => e.exerciseId === exerciseId);
-    const sets = (ex?.sets ?? []).filter(s => s.kind !== 'warmup').map(s => ({ weight: s.weight, reps: s.reps, rir: s.rir }));
+    const sets = (ex?.sets ?? []).filter(s => s.kind !== 'warmup').map(s => ({ weight: s.weight, reps: s.reps, rir: effectiveRir(s) }));
     return sets.length ? [{ date: w.date, sets }] : [];
   }).slice(0, 3);
 }

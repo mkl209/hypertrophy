@@ -348,15 +348,14 @@ input[type=range].ci-range:focus-visible::-moz-range-thumb { box-shadow:0 0 0 4p
 .logger .lg-head .btn.sm { min-height: 28px; padding: 0 8px }
 .lg-meta { font-size: .74rem; line-height: 1.3; margin: 2px 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 
-/* one tight row per set: [type] [weight] [reps] [RIR] [log] [x] */
-.logger .setrow,
-.logger .setrow { grid-template-columns: 38px 1fr 1fr 46px 44px 18px; gap: 4px; margin: 3px 0; padding: 3px; border-radius: 8px }
+/* one tight row per set: [type] [weight] [reps] [RIR] [Myo] [log] [x] */
+.logger .setrow { grid-template-columns: 34px minmax(0,1fr) minmax(0,1fr) 40px 34px 40px 16px; gap: 4px; margin: 3px 0; padding: 3px; border-radius: 8px }
 .logger .setrow input { min-height: 34px; font-size: .95rem; padding: 2px 4px }
 .logger .setrow .btn { min-height: 34px; min-width: 0; padding: 0 }
 .logger .setrow .kind { padding: 0; font-size: .78rem; font-weight: 700 }
 .logger .setrow .kind.k-warmup { color: var(--secondary) }
-.logger .setrow .kind.k-drop { color: var(--info) }
-.logger .setrow .kind.k-failure { color: var(--danger) }
+.logger .setrow .myo { font-size: .68rem; font-weight: 700; }
+.logger .setrow .myo.active { border-color: var(--accent); color: var(--accent); }
 .logger .setrow .rm { all: unset; cursor: pointer; text-align: center; color: var(--muted); font-size: 1rem; line-height: 1 }
 .logger .setrow .rm:hover { color: var(--danger) }
 
@@ -370,7 +369,7 @@ input[type=range].ci-range:focus-visible::-moz-range-thumb { box-shadow:0 0 0 4p
 .lg-err { flex-basis: 100%; margin: 0 }
 
 @media (max-width: 760px) {
-  .logger .setrow { grid-template-columns: 38px 1fr 1fr 42px 42px 16px }
+  .logger .setrow { grid-template-columns: 32px minmax(0,1fr) minmax(0,1fr) 36px 32px 38px 14px }
 }
 @media (pointer: coarse) {
   .logger .setrow input, .logger .setrow .btn { min-height: 40px }

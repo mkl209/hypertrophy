@@ -5,7 +5,7 @@ import type { CompletedSet, DraftExercise, DraftSet, Exercise, SetKind, WorkoutD
 
 type Prev = Record<string, { date: string; sets: CompletedSet[] } | null>;
 // kind, full label, short badge
-const KINDS: [SetKind, string, string][] = [['working', 'Working', ''], ['warmup', 'Warm-up', 'W'], ['drop', 'Drop', 'D'], ['failure', 'Failure', 'F']];
+const KINDS: [SetKind, string, string][] = [['working', 'Working', ''], ['warmup', 'Warm-up', 'W']];
 const mmss = (ms: number) => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 
 export default function Logger({ d, setD, prev, exercises, unit, onFinish }: {
@@ -24,9 +24,10 @@ export default function Logger({ d, setD, prev, exercises, unit, onFinish }: {
     setErr(''); patch(e.id, s.id, { done: true }); if (s.kind !== 'warmup') setRestEnd(Date.now() + e.restSec * 1000);
   };
   const cycleKind = (e: DraftExercise, s: DraftSet) => {
-    const i = KINDS.findIndex(k => k[0] === s.kind);
-    patch(e.id, s.id, { kind: KINDS[(i + 1) % KINDS.length][0] });
+    const kind: SetKind = s.kind === 'warmup' ? 'working' : 'warmup';
+    patch(e.id, s.id, { kind, technique: kind === 'warmup' ? undefined : s.technique });
   };
+  const toggleMyo = (e: DraftExercise, s: DraftSet) => patch(e.id, s.id, { technique: s.technique === 'myo-reps' ? undefined : 'myo-reps' });
   const addSet = (e: DraftExercise) => { const l = e.list[e.list.length - 1]; ex(e.id, x => ({ ...x, list: [...x.list, { id: newId(), kind: 'working', weight: l?.weight ?? '', reps: l?.reps ?? '', rir: '', done: false }] })); };
   const move = (i: number, dir: number) => setD(x => { const a = [...x.exercises]; const j = i + dir; if (j < 0 || j >= a.length) return x; [a[i], a[j]] = [a[j], a[i]]; return { ...x, exercises: a }; });
   const replace = (e: DraftExercise, id: string) => { const n = exercises.find(q => q.id === id); if (n) ex(e.id, x => ({ ...x, exerciseId: n.id, name: n.name, list: x.list.map(s => ({ ...s, weight: s.done ? s.weight : '', reps: s.done ? s.reps : '' })) })); };
@@ -48,16 +49,17 @@ export default function Logger({ d, setD, prev, exercises, unit, onFinish }: {
             <button className="btn ghost sm" aria-label="Move down" onClick={() => move(i, 1)}>↓</button>
           </div>
           <div className="muted lg-meta">
-            {e.prescribed.sets}×{e.prescribed.repMin}–{e.prescribed.repMax} · RIR {e.prescribed.rir} · {e.restSec}s · Last: {p ? p.sets.map(s => `${s.weight}×${s.reps}`).join(', ') : 'none'}
+            {e.prescribed.sets}×{e.prescribed.repMin}–{e.prescribed.repMax} · RIR {e.prescribed.rir} · {e.restSec}s · Myo marks a working set in a Myo-reps sequence · Last: {p ? p.sets.map(s => `${s.weight}×${s.reps}`).join(', ') : 'none'}
           </div>
           {e.list.map((s, k) => {
-            const [, label, badge] = KINDS.find(q => q[0] === s.kind)!;
+            const [, label, badge] = KINDS.find(q => q[0] === s.kind) ?? KINDS[0];
             return (
               <div key={s.id} className={`setrow ${s.done ? 'done' : ''}`}>
                 <button className={`btn ghost sm kind k-${s.kind}`} title={`${label} (tap to change)`} aria-label={`Set ${k + 1} type: ${label}`} disabled={s.done} onClick={() => cycleKind(e, s)}>{k + 1}{badge}</button>
                 <input inputMode="decimal" placeholder={unit} aria-label="Weight" value={s.weight} disabled={s.done} onChange={ev => patch(e.id, s.id, { weight: ev.target.value })} />
                 <input inputMode="numeric" placeholder="reps" aria-label="Reps" value={s.reps} disabled={s.done} onChange={ev => patch(e.id, s.id, { reps: ev.target.value })} />
                 <input inputMode="numeric" placeholder="RIR" aria-label="RIR" value={s.rir} disabled={s.done} onChange={ev => patch(e.id, s.id, { rir: ev.target.value })} />
+                <button className={`btn ghost sm myo ${s.technique === 'myo-reps' ? 'active' : ''}`} title="Mark this working set as a Myo-reps set" aria-pressed={s.technique === 'myo-reps'} disabled={s.done || s.kind === 'warmup'} onClick={() => toggleMyo(e, s)}>Myo</button>
                 <button className="btn" style={{ background: s.done ? '#2e9e5b' : undefined }} aria-label={s.done ? 'Undo set' : 'Log set'} onClick={() => complete(e, s)}>{s.done ? '✓' : 'Log'}</button>
                 {s.done ? <span /> : <button className="rm" aria-label="Remove set" onClick={() => ex(e.id, x => ({ ...x, list: x.list.filter(q => q.id !== s.id) }))}>×</button>}
               </div>

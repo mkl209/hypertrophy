@@ -1,5 +1,5 @@
 import { addDays, diffDays, startOfWeekMonday, weekIndex, type ISODate } from '../calendar/dates.ts';
-import { epley, isWorking, summarize } from '../workout/stats.ts';
+import { epley, effectiveRir, isWorking, summarize } from '../workout/stats.ts';
 import { phaseForDate, weeklyRate, sumFoods } from '../nutrition/nutrition.ts';
 import type { CompletedWorkout, FoodEntry, Mesocycle, NutritionPhase, PostWorkoutFeedback, PreWorkoutCheckIn, ScheduledWorkout, BodyweightEntry } from '../types/index.ts';
 
@@ -47,7 +47,7 @@ export function exerciseSessions(ws: CompletedWorkout[], exerciseId: string): Ex
     const sets = w.exercises.filter(e => e.exerciseId === exerciseId).flatMap(e => e.sets.filter(isWorking));
     if (!sets.length) continue;
     const topWeight = Math.max(...sets.map(s => s.weight)), bestE1rm = Math.max(...sets.map(s => epley(s.weight, s.reps)));
-    const rirs = sets.filter(s => s.rir !== undefined).map(s => s.rir as number);
+    const rirs = sets.map(effectiveRir).filter((v): v is number => v !== undefined);
     out.push({ date: w.date, workoutId: w.id, topWeight, bestE1rm: Math.round(bestE1rm * 10) / 10, sets: sets.length, reps: sets.reduce((t, s) => t + s.reps, 0), volume: sets.reduce((t, s) => t + s.weight * s.reps, 0),
       avgRir: rirs.length ? rirs.reduce((a, b) => a + b, 0) / rirs.length : null, prWeight: bestW >= 0 && topWeight > bestW, prE1rm: bestE >= 0 && bestE1rm > bestE + 1e-9 });
     bestW = Math.max(bestW, topWeight); bestE = Math.max(bestE, bestE1rm);
@@ -67,7 +67,7 @@ export function mesoSummary(meso: Mesocycle, scheduled: ScheduledWorkout[], comp
   const weeks = Array.from({ length: meso.weeks }, (_, w) => {
     const wk = mine.filter(x => weekIndex(meso.startDate, x.date) === w);
     const sets = wk.flatMap(x => x.exercises.flatMap(e => e.sets.filter(isWorking)));
-    const rirs = sets.filter(s => s.rir !== undefined).map(s => s.rir as number);
+    const rirs = sets.map(effectiveRir).filter((v): v is number => v !== undefined);
     const start = addDays(startOfWeekMonday(meso.startDate), w * 7), end = addDays(start, 6);
     const fb = feedback.filter(f => wk.some(x => x.id === f.workoutId));
     return { week: w, sessions: wk.length, sets: sets.length, volume: sets.reduce((t, s) => t + s.weight * s.reps, 0), avgRir: avg(rirs),

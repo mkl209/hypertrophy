@@ -3,6 +3,9 @@ import { db } from '../../db/db.ts';
 import { addDays, diffDays, startOfWeekMonday, todayISO } from '../../core/calendar/dates.ts';
 import { phaseForDate, sumFoods } from '../../core/nutrition/nutrition.ts';
 import { WorkoutCard } from '../programme/Schedule.tsx';
+import CheckIn from '../workout/CheckIn.tsx';
+import { latestFor } from '../../core/progression/readiness.ts';
+import { useState } from 'react';
 
 const Stat = ({ label, value, sub, progress }: { label: string; value: string; sub: string; progress?: number }) => (
   <div className="stat"><div className="stat-l">{label}</div><div className="stat-v">{value}</div><div className="stat-s">{sub}</div>
@@ -11,6 +14,7 @@ const Stat = ({ label, value, sub, progress }: { label: string; value: string; s
 
 export default function Dashboard() {
   const today = todayISO();
+  const [editingCheckIn, setEditingCheckIn] = useState(false);
   const wkStart = startOfWeekMonday(today);
   const mesos = useLiveQuery(() => db.mesocycles.where('status').equals('active').toArray(), []) ?? [];
   const templates = useLiveQuery(() => db.templates.toArray(), []) ?? [];
@@ -20,6 +24,8 @@ export default function Dashboard() {
   const weekSched = useLiveQuery(() => db.scheduled.where('date').between(wkStart, addDays(wkStart, 6), true, true).toArray(), [wkStart]) ?? [];
   const phases = useLiveQuery(() => db.phases.toArray(), []) ?? [];
   const foods = useLiveQuery(() => db.foods.where('date').equals(today).toArray(), [today]) ?? [];
+  const checkinRows = useLiveQuery(() => db.checkins.where('date').equals(today).toArray(), [today]) ?? [];
+  const todayCheckIn = latestFor(checkinRows, today);
   const meso = mesos.find(m => { const w = Math.floor(diffDays(today, startOfWeekMonday(m.startDate)) / 7); return w >= 0 && w < m.weeks; });
   const week = meso ? Math.floor(diffDays(today, startOfWeekMonday(meso.startDate)) / 7) : -1;
   const phase = phaseForDate(phases, today); const nt = sumFoods(foods);
@@ -34,6 +40,11 @@ export default function Dashboard() {
         <Stat label="Calories" value={String(Math.round(nt.calories))} sub={phase ? `of ${phase.calories} kcal · ${phase.name}` : 'No nutrition phase set'} progress={phase ? nt.calories / phase.calories : undefined} />
         <Stat label="Protein" value={`${Math.round(nt.protein)} g`} sub={phase ? `of ${phase.protein} g` : 'No nutrition phase set'} progress={phase ? nt.protein / phase.protein : undefined} />
       </div>
+      {todayCheckIn && !editingCheckIn ? (
+        <div className="card"><div className="row" style={{ justifyContent: 'space-between', margin: 0 }}><div><h2>Today's check-in</h2><p className="muted sm2">Saved · readiness {todayCheckIn.readiness}/5 · fatigue {todayCheckIn.fatigue}/5 · soreness {todayCheckIn.soreness}/5</p></div><button className="btn ghost sm" onClick={() => setEditingCheckIn(true)}>Edit check-in</button></div></div>
+      ) : (
+        <CheckIn date={today} initial={todayCheckIn} title="Today's pre-workout check-in" submitLabel="Save check-in" showSkip={false} onDone={() => setEditingCheckIn(false)} />
+      )}
       <div className="grid2">
         <div className="card"><h2>Today</h2>
           {todays.filter(w => !meso || w.mesocycleId === meso.id).map(w => <WorkoutCard key={w.id} w={w} t={tpl(w.templateId)} today={today} />)}

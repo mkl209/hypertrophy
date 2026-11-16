@@ -3,6 +3,8 @@ import type { CompletedExercise, CompletedSet, CompletedWorkout, DraftSet, Worko
 /** Epley estimate; only an estimate, most reliable at low reps. */
 export const epley = (w: number, r: number): number => (r <= 1 ? w : w * (1 + r / 30));
 export const isWorking = (s: CompletedSet): boolean => s.kind !== 'warmup';
+/** Legacy failure-tagged records represent 0 RIR after failure is removed as a set category. */
+export const effectiveRir = (s: CompletedSet): number | undefined => s.rir ?? ((s as { kind: string }).kind === 'failure' ? 0 : undefined);
 
 export function summarize(w: CompletedWorkout) {
   let sets = 0, reps = 0, volume = 0;
@@ -49,7 +51,7 @@ export function toCompleted(d: WorkoutDraft, id: string, finishedAt: number, uni
     startedAt: d.startedAt, finishedAt, unit, checkinId: d.checkin?.id,
     exercises: d.exercises.map(e => ({
       id: e.id, exerciseId: e.exerciseId, exerciseName: e.name, prescribed: { ...e.prescribed }, notes: e.notes,
-      sets: e.list.filter(s => s.done && isSetValid(s)).map(s => ({ id: s.id, kind: s.kind, weight: Number(s.weight), reps: Number(s.reps), rir: s.rir.trim() === '' ? undefined : Number(s.rir) }))
+      sets: e.list.filter(s => s.done && isSetValid(s)).map(s => ({ id: s.id, kind: s.kind, technique: s.technique, weight: Number(s.weight), reps: Number(s.reps), rir: s.rir.trim() === '' ? undefined : Number(s.rir) }))
     })).filter(e => e.sets.length > 0)
   };
 }
