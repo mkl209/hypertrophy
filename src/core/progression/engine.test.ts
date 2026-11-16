@@ -64,9 +64,30 @@ test('volume progression adds sets only when recovery allows, and deloads', () =
   const d = recommend(ctx({ progression: v, weekIndex: 4 }));
   assert.equal(d.setsChange, 'deload'); assert.equal(d.sets, 2);
 });
-test('beginners cannot select volume progression', () => {
+test('hybrid progression combines double progression with volume increases and deloads', () => {
+  const hybrid = { strategy: 'hybrid' as const, volume: { weeklySetChange: 1, maxExtraSets: 2, deloadLastWeek: true } };
+  const reps = recommend(ctx({ progression: hybrid }));
+  assert.equal(reps.action, 'add_reps');
+  assert.equal(reps.sets, 3);
+  assert.equal(reps.targets[0].weight, 60);
+  const load = recommend(ctx({ progression: hybrid, sessions: [sess([12, 12, 12])], weekIndex: 1 }));
+  assert.equal(load.action, 'increase_load');
+  assert.equal(load.sets, 4);
+  assert.equal(load.setsChange, 'increase');
+  assert.equal(load.targets.length, 4);
+  const held = recommend(ctx({ progression: hybrid, weekIndex: 2, sessions: [sess([7, 7, 6])] }));
+  assert.equal(held.sets, 3);
+  assert.equal(held.setsChange, 'held');
+  const deload = recommend(ctx({ progression: hybrid, weekIndex: 4 }));
+  assert.equal(deload.sets, 2);
+  assert.equal(deload.setsChange, 'deload');
+});
+test('beginners cannot select volume or hybrid progression', () => {
   assert.ok(!allowedStrategies('beginner').includes('volume'));
+  assert.ok(!allowedStrategies('beginner').includes('hybrid'));
   assert.ok(validateProgression('beginner', { strategy: 'volume', volume: { weeklySetChange: 1, maxExtraSets: 2, deloadLastWeek: false } }));
+  assert.ok(validateProgression('beginner', { strategy: 'hybrid', volume: { weeklySetChange: 1, maxExtraSets: 2, deloadLastWeek: false } }));
   assert.equal(validateProgression('intermediate', { strategy: 'volume', volume: { weeklySetChange: 1, maxExtraSets: 2, deloadLastWeek: false } }), null);
+  assert.equal(validateProgression('intermediate', { strategy: 'hybrid', volume: { weeklySetChange: 1, maxExtraSets: 2, deloadLastWeek: false } }), null);
   assert.ok(validateProgression('advanced', { strategy: 'volume', volume: { weeklySetChange: 5, maxExtraSets: 2, deloadLastWeek: false } }));
 });

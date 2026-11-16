@@ -34,7 +34,7 @@ export default function NewBlock({ onDone }: { onDone: (id: string) => void }) {
     if (!isValidISODate(start)) return setErr('Pick a valid start date.');
     if (!Number.isInteger(weeks) || weeks < 1 || weeks > 12) return setErr('Weeks must be a whole number from 1 to 12.');
     if (chosen.some(c => !c)) return setErr('Choose a week for every slot.');
-    const progression = { strategy: chosen0, ...(chosen0 === 'volume' ? { volume: { weeklySetChange: wk, maxExtraSets: maxExtra, deloadLastWeek: deload } } : {}) };
+    const progression = { strategy: chosen0, ...((chosen0 === 'volume' || chosen0 === 'hybrid') ? { volume: { weeklySetChange: wk, maxExtraSets: maxExtra, deloadLastWeek: deload } } : {}) };
     const pe = validateProgression(level, progression); if (pe) return setErr(pe);
     try {
       const meso: Mesocycle = { id: newId(), name: name.trim(), startDate: start, weeks, pattern, sequence: buildSequence(pattern, chosen, weeks), status: 'active', progression, createdAt: Date.now() };
@@ -60,7 +60,7 @@ export default function NewBlock({ onDone }: { onDone: (id: string) => void }) {
         {pattern === 'alternate' && <>{sel(0, 'Week A')}{sel(1, 'Week B')}</>}
         {pattern === 'custom' && Array.from({ length: weeks }, (_, i) => sel(i, `Week ${i + 1}`))}
         <label>Progression<select value={chosen0} onChange={e => setStrategy(e.target.value as Strategy)}>{allowed.map(k => <option key={k} value={k}>{STRATEGY_LABEL[k]}</option>)}</select></label>
-        {chosen0 === 'volume' && <>
+        {(chosen0 === 'volume' || chosen0 === 'hybrid') && <>
           <label>Extra sets / week<input type="number" min={0} max={2} value={wk} onChange={e => setWk(num(e.target.value, 1))} /></label>
           <label>Max extra sets<input type="number" min={0} max={6} value={maxExtra} onChange={e => setMaxExtra(num(e.target.value, 2))} /></label>
           <label className="chk"><input type="checkbox" checked={deload} onChange={e => setDeload(e.target.checked)} />Deload final week</label></>}

@@ -61,7 +61,7 @@ export interface WorkoutTemplate { id: ID; name: string; exercises: TemplateExer
 export interface Microcycle { id: ID; name: string; days: { weekday: number; templateId: ID }[]; archived: boolean; createdAt: number }
 
 export type SequencePattern = 'repeat' | 'alternate' | 'custom';
-export type Strategy = 'manual' | 'double' | 'rep' | 'load' | 'volume';
+export type Strategy = 'manual' | 'double' | 'rep' | 'load' | 'volume' | 'hybrid';
 /** Volume strategy: extra sets per exercise per week, capped, with an optional deload in the final week. */
 export interface Progression { strategy: Strategy; volume?: { weeklySetChange: number; maxExtraSets: number; deloadLastWeek: boolean } }
 export interface Mesocycle {

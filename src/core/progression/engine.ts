@@ -85,7 +85,7 @@ export function recommend(c: Ctx): Rec {
   }
 
   let sets = p.sets; let setsChange: Rec['setsChange'] = 'none';
-  if (prog.strategy === 'volume' && prog.volume) {
+  if ((prog.strategy === 'volume' || prog.strategy === 'hybrid') && prog.volume) {
     const v = prog.volume;
     if (v.deloadLastWeek && c.totalWeeks > 1 && c.weekIndex === c.totalWeeks - 1) { sets = Math.max(1, Math.round(p.sets / 2)); setsChange = 'deload'; reasons.push(`Deload week: sets reduced from ${p.sets} to ${sets}.`); }
     else {
