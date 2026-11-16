@@ -43,8 +43,11 @@ const Sec = ({ title, children }: { title: string; children: ReactNode }) => (
   </section>
 );
 
-export default function CheckIn({ date, scheduledId, onDone }: { date: string; scheduledId?: string; onDone: (c?: PreWorkoutCheckIn) => void }) {
-  const [c, setC] = useState<PreWorkoutCheckIn>({ id: newId(), date, scheduledId, sleepHours: 7.5, sleepQuality: 3, fatigue: 2, soreness: 2, recovery: 3, stress: 2, mentalFatigue: 2, motivation: 3, readiness: 3, jointDiscomfort: 1, jointPain: 1, unwell: false, hydration: 3, createdAt: Date.now() });
+export default function CheckIn({ date, scheduledId, initial, title = 'Pre-workout check-in', submitLabel = 'Continue', showSkip = true, onDone }: {
+  date: string; scheduledId?: string; initial?: PreWorkoutCheckIn; title?: string; submitLabel?: string; showSkip?: boolean;
+  onDone: (c?: PreWorkoutCheckIn) => void;
+}) {
+  const [c, setC] = useState<PreWorkoutCheckIn>(initial ?? { id: newId(), date, scheduledId, sleepHours: 7.5, sleepQuality: 3, fatigue: 2, soreness: 2, recovery: 3, stress: 2, mentalFatigue: 2, motivation: 3, readiness: 3, jointDiscomfort: 1, jointPain: 1, unwell: false, hydration: 3, createdAt: Date.now() });
   const p = (k: keyof PreWorkoutCheckIn) => (n: number) => setC(x => ({ ...x, [k]: n }));
   const caution = c.unwell || c.jointPain >= 4;
   const go = async () => { await db.checkins.put(c); onDone(c); };
@@ -52,11 +55,11 @@ export default function CheckIn({ date, scheduledId, onDone }: { date: string; s
   // To swap any question between a slider and buttons, change its `as` prop below.
   return (
     <div className="card">
-      <h2>Pre-workout check-in</h2>
+      <h2>{title}</h2>
       <p className="muted sm2 ci-intro">About 30 seconds. All of this is optional context for your recommendations.</p>
 
       <Sec title="Sleep">
-        <label className="ci-field">Hours slept<input type="number" min={0} max={16} step={0.25} value={c.sleepHours} onChange={e => setC({ ...c, sleepHours: num(e.target.value, 0) })} /></label>
+        <label className="ci-field">Hours slept last night<input type="number" min={0} max={16} step={0.25} value={c.sleepHours} onChange={e => setC({ ...c, sleepHours: num(e.target.value, 0) })} /></label>
         <Scale as="buttons" label="Sleep quality" name="sleepQuality" v={c.sleepQuality} set={p('sleepQuality')} lo="poor" hi="great" />
       </Sec>
 
@@ -88,7 +91,10 @@ export default function CheckIn({ date, scheduledId, onDone }: { date: string; s
         <label className="ci-field ci-wide">Notes<input type="text" value={c.notes ?? ''} onChange={e => setC({ ...c, notes: e.target.value })} /></label>
       </Sec>
 
-      <div className="row"><button className="btn" onClick={go}>Continue</button><button className="btn ghost" onClick={() => onDone(undefined)}>Skip check-in</button></div>
+      <div className="row">
+        <button className="btn" onClick={go}>{submitLabel}</button>
+        {showSkip && <button className="btn ghost" onClick={() => onDone(undefined)}>Skip check-in</button>}
+      </div>
     </div>
   );
 }
