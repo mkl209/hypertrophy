@@ -32,10 +32,8 @@ export function mealTime(meal: MealSlot, schedule: NutritionSchedule): string {
 export function allocateMealTargets(phase: NutritionPhase, meals: MealSlot[], loggedFoods: FoodEntry[] = []) {
   const active = meals.filter(m => m.enabled);
   if (!active.length) return [];
-  const completedMealIds = new Set(loggedFoods.map(f => f.mealId).filter((id): id is string => !!id));
-  const pending = active.filter(m => !completedMealIds.has(m.id));
   const consumed = sumFoods(loggedFoods);
-  const remaining = { protein: Math.max(0, phase.protein - consumed.protein), carbs: Math.max(0, phase.carbs - consumed.carbs), fat: Math.max(0, phase.fat - consumed.fat), fibre: Math.max(0, (phase.fibre ?? 0) - consumed.fibre) };
+  const loggedByMeal = active.map(meal => sumFoods(loggedFoods.filter(food => food.mealId === meal.id)));
   const weights = (role: MealSlot['role'], macro: 'protein'|'carbs'|'fat'|'fibre') => {
     const table: Record<string, Record<string, number>> = {
       'breakfast': { protein: 1, carbs: 1.0, fat: 1.15, fibre: 1.1 },
@@ -48,14 +46,31 @@ export function allocateMealTargets(phase: NutritionPhase, meals: MealSlot[], lo
     };
     return table[role]?.[macro] ?? 1;
   };
-  const distribute = (total: number, macro: 'protein'|'carbs'|'fat'|'fibre') => {
-    const ws = pending.map(m => weights(m.role, macro)); const sum = ws.reduce((a,b) => a+b, 0) || 1;
-    let left = Math.round(total);
-    return pending.map((_, i) => { const value = i === pending.length - 1 ? left : Math.round(total * ws[i] / sum); left -= value; return value; });
+  const round1 = (n: number) => Math.round(n * 10) / 10;
+  const weighted = (total: number, macro: 'protein'|'carbs'|'fat'|'fibre') => {
+    const ws = active.map(m => weights(m.role, macro));
+    const sum = ws.reduce((a,b) => a+b, 0) || 1;
+    let left = round1(total);
+    return ws.map((weight, i) => {
+      const value = i === ws.length - 1 ? left : Math.min(left, round1(total * weight / sum));
+      left = round1(left - value);
+      return value;
+    });
   };
-  const p = distribute(remaining.protein, 'protein'), c = distribute(remaining.carbs, 'carbs'), f = distribute(remaining.fat, 'fat'), fi = distribute(remaining.fibre, 'fibre');
-  const redistributed = new Map(pending.map((meal, i) => [meal.id, { protein: p[i], carbs: c[i], fat: f[i], fibre: fi[i] }]));
-  const original = (macro: 'protein'|'carbs'|'fat'|'fibre') => { const ws = active.map(m => weights(m.role, macro)); const sum = ws.reduce((a,b) => a+b, 0); return active.map((_, i) => Math.round(((phase[macro] ?? 0) as number) * ws[i] / sum)); };
-  const op = original('protein'), oc = original('carbs'), of = original('fat'), oi = original('fibre');
-  return active.map((meal, i) => { const target = redistributed.get(meal.id) ?? { protein: op[i], carbs: oc[i], fat: of[i], fibre: oi[i] }; return { meal, ...target, calories: Math.round(target.protein*4+target.carbs*4+target.fat*9), redistributed: !completedMealIds.has(meal.id) && loggedFoods.length > 0 }; });
+  /** Subtract food already logged in each meal, then scale remaining deficits if food was unassigned or a meal overshot. */
+  const remainingByMeal = (total: number, macro: 'protein'|'carbs'|'fat'|'fibre', initial: number[]) => {
+    const totalRemaining = round1(Math.max(0, total - consumed[macro]));
+    const deficits = initial.map((target, i) => Math.max(0, target - loggedByMeal[i][macro]));
+    const deficitTotal = deficits.reduce((a,b) => a+b, 0);
+    if (deficitTotal <= 0 || totalRemaining <= 0) return active.map(() => 0);
+    let left = totalRemaining;
+    return deficits.map((deficit, i) => {
+      const value = i === deficits.length - 1 ? left : Math.min(left, round1(totalRemaining * deficit / deficitTotal));
+      left = round1(left - value);
+      return value;
+    });
+  };
+  const op = weighted(phase.protein, 'protein'), oc = weighted(phase.carbs, 'carbs'), of = weighted(phase.fat, 'fat'), oi = weighted(phase.fibre ?? 0, 'fibre');
+  const p = remainingByMeal(phase.protein, 'protein', op), c = remainingByMeal(phase.carbs, 'carbs', oc), f = remainingByMeal(phase.fat, 'fat', of), fi = remainingByMeal(phase.fibre ?? 0, 'fibre', oi);
+  return active.map((meal, i) => ({ meal, protein:p[i], carbs:c[i], fat:f[i], fibre:fi[i], calories:Math.round(p[i]*4+c[i]*4+f[i]*9), redistributed:loggedFoods.length > 0 }));
 }

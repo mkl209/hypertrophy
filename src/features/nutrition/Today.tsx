@@ -5,6 +5,7 @@ import { kcalFromMacros, phaseForDate, sumFoods } from '../../core/nutrition/nut
 import { allocateMealTargets, mealTime, scheduleOf } from '../../core/nutrition/meals.ts';
 import { signed, toleranceOf } from '../../core/nutrition/calories.ts';
 import FoodSearch, { type SelectedFood } from './FoodSearch.tsx';
+import { targetsForDay } from '../../core/nutrition/adaptive.ts';
 
 const Bar = ({ label, v, target, unit, tol }: { label: string; v: number; target?: number; unit: string; tol?: number }) => {
   const pct = target ? Math.min(100, (v / target) * 100) : 0;
@@ -22,6 +23,8 @@ export default function Today({ date }: { date: string }) {
   const settings = useLiveQuery(() => db.settings.get('settings'));
   const water = useLiveQuery(() => db.water.get(date), [date]);
   const recent = useLiveQuery(() => db.foods.orderBy('date').reverse().limit(80).toArray(), []) ?? [];
+  const scheduled = useLiveQuery(() => db.scheduled.where('date').equals(date).toArray(), [date]) ?? [];
+  const trainingDay = scheduled.some(w => w.status === 'scheduled' || w.status === 'completed');
   const [f, setF] = useState({ name: '', calories: '', protein: '', carbs: '', fat: '', fibre: '', mealId: '' });
   const [err, setErr] = useState('');
   const phase = phaseForDate(phases, date);
@@ -29,7 +32,9 @@ export default function Today({ date }: { date: string }) {
   const ml = water?.ml ?? 0;
   const waterTarget = phase?.waterMl ?? 3000;
   const schedule = scheduleOf(settings?.nutritionSchedule);
-  const mealTargets = useMemo(() => phase ? allocateMealTargets(phase, schedule.meals, foods) : [], [phase, settings?.nutritionSchedule, foods]);
+  const dailyTargets = phase ? targetsForDay(phase, trainingDay) : undefined;
+  const dayPhase = phase && dailyTargets ? { ...phase, ...dailyTargets } : phase;
+  const mealTargets = useMemo(() => dayPhase ? allocateMealTargets(dayPhase, schedule.meals, foods) : [], [dayPhase, settings?.nutritionSchedule, foods]);
   const assigned = useMemo(() => Object.fromEntries(schedule.meals.map(m => [m.id, sumFoods(foods.filter(f => f.mealId === m.id))])), [foods, schedule.meals]);
   const uniq = [...new Map(recent.filter(r => r.name).map(r => [r.name, r])).values()].slice(0, 8);
 
@@ -51,15 +56,15 @@ export default function Today({ date }: { date: string }) {
 
   return <>
     <div className="card">
-      <h2>{phase ? `${phase.name} · ${{ bulk: 'Bulking', maintain: 'Maintenance', cut: 'Cutting' }[phase.goal]}` : 'No nutrition phase for this date'}</h2>
+      <h2>{phase ? `${phase.name} · ${{ bulk: 'Bulking', maintain: 'Maintenance', cut: 'Cutting' }[phase.goal]} · ${trainingDay ? 'Training day' : 'Rest day'}` : 'No nutrition phase for this date'}</h2>
       {!phase && <p className="muted">Create a phase in the Phases tab to see targets. You can still log food.</p>}
       {phase?.maintenance !== undefined && <p className="muted sm2">Maintenance {phase.maintenance} kcal {signed(phase.adjustment ?? 0)} = target {phase.calories} kcal. Within ±{toleranceOf(phase)} kcal is on target.</p>}
-      <Bar label="Calories" v={t.calories} target={phase?.calories} unit="kcal" tol={phase ? toleranceOf(phase) : undefined} />
-      <Bar label="Protein" v={t.protein} target={phase?.protein} unit="g" /><Bar label="Carbs" v={t.carbs} target={phase?.carbs} unit="g" /><Bar label="Fat" v={t.fat} target={phase?.fat} unit="g" /><Bar label="Fibre" v={t.fibre} target={phase?.fibre} unit="g" />
+      <Bar label="Calories" v={t.calories} target={dailyTargets?.calories} unit="kcal" tol={phase ? toleranceOf(phase) : undefined} />
+      <Bar label="Protein" v={t.protein} target={dailyTargets?.protein} unit="g" /><Bar label="Carbs" v={t.carbs} target={dailyTargets?.carbs} unit="g" /><Bar label="Fat" v={t.fat} target={dailyTargets?.fat} unit="g" /><Bar label="Fibre" v={t.fibre} target={phase?.fibre} unit="g" />
       <Bar label="Water" v={ml} target={waterTarget} unit="ml" />
       <div className="row"><button className="btn ghost" onClick={() => addWater(250)}>+250 ml</button><button className="btn ghost" onClick={() => addWater(500)}>+500 ml</button><button className="btn ghost" onClick={() => addWater(-250)}>−250 ml</button></div>
     </div>
-    {phase && <div className="card"><h2>Meal targets</h2><p className="muted sm2">An RP-inspired starting allocation: protein is spread across meals, carbohydrates are weighted toward training, and pre-workout fat/fibre are lower for easier digestion. These are practical heuristics, not RP's proprietary algorithm. Meal calories are calculated from your P/C/F targets (4/4/9); reconcile those with your daily calorie target in Phases if they differ. Change your schedule in the Meals tab.</p>
+    {phase && <div className="card"><h2>Meal targets · {trainingDay ? 'Training day' : 'Rest day'}</h2><p className="muted sm2">An RP-inspired starting allocation: protein is spread across meals, carbohydrates are weighted toward training, and pre-workout fat/fibre are lower for easier digestion. These are practical heuristics, not RP's proprietary algorithm. Meal calories are calculated from your P/C/F targets (4/4/9); reconcile those with your daily calorie target in Phases if they differ. Change your schedule in the Meals tab.</p>
       {mealTargets.length === 0 && <p className="muted">Enable at least one meal in the Meals tab to calculate allocations.</p>}
       {[...mealTargets].sort((a, b) => mealTime(a.meal, schedule).localeCompare(mealTime(b.meal, schedule))).map(({ meal, calories, protein, carbs, fat, fibre, redistributed }) => { const eaten = assigned[meal.id] ?? { calories: 0, protein: 0, carbs: 0, fat: 0, fibre: 0 }; return <div className="item" key={meal.id} style={{ display: 'block' }}>
         <div className="row" style={{ justifyContent: 'space-between' }}><strong>{meal.name}</strong><span className="muted">{mealTime(meal, schedule)} · {Math.round(calories)} kcal target</span></div>

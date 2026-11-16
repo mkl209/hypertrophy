@@ -28,7 +28,7 @@ export default function Phases({ unit }: { unit: string }) {
     if (!Number.isFinite(edit.adjustment ?? 0)) return setErr('The surplus or deficit must be a number.');
     if (target <= 0) return setErr('Your target calories must be above zero.');
     if (edit.tolerance !== undefined && (!Number.isFinite(edit.tolerance) || edit.tolerance < 0)) return setErr('Tolerance must be zero or more.');
-    if ([edit.protein, edit.carbs, edit.fat].some(x => !Number.isFinite(x) || x < 0)) return setErr('Targets must be positive numbers.');
+    if ([edit.protein, edit.carbs, edit.fat].some(x => !Number.isFinite(x) || x < 0) || [edit.restDayCalories, edit.restDayProtein, edit.restDayCarbs, edit.restDayFat].some(x => x !== undefined && (!Number.isFinite(x) || x < 0))) return setErr('Targets must be zero or greater.');
     const isNew = !phases.some(p => p.id === edit.id);
     await db.transaction('rw', db.phases, async () => {
       // Starting a new phase ends the currently open-ended one the day before, so history is kept.
@@ -61,8 +61,15 @@ export default function Phases({ unit }: { unit: string }) {
           <label>Tolerance ± kcal<input type="number" min={0} step={25} placeholder={String(DEFAULT_TOLERANCE)} value={edit.tolerance ?? ''} onChange={e => setEdit({ ...edit, tolerance: optNum(e.target.value) })} /></label>
         </div>
         <p className="muted sm2">Target = maintenance {signed(adj)} = {target} kcal. Landing within ±{tol} kcal of the target counts as on target. The surplus or deficit starts at a suggested value for the goal; change it freely.</p>
-        <h3>Macros and other targets</h3>
-        <div className="row">{f('protein', 'Protein g')}{f('carbs', 'Carbs g')}{f('fat', 'Fat g')}
+        <h3>Training-day targets</h3>
+        <div className="row">{f('protein', 'Protein g')}{f('carbs', 'Carbs g')}{f('fat', 'Fat g')}</div>
+        <h3>Rest-day targets (optional)</h3>
+        <p className="muted sm2">Leave a field blank to use the training-day value. Daily targets are selected using the workout scheduled for that calendar date.</p>
+        <div className="row">
+          {(['restDayCalories','restDayProtein','restDayCarbs','restDayFat'] as const).map((k) => <label key={k}>{({restDayCalories:'Calories kcal',restDayProtein:'Protein g',restDayCarbs:'Carbs g',restDayFat:'Fat g'})[k]}<input type="number" min={0} value={edit[k] ?? ''} onChange={e => setEdit({ ...edit, [k]: e.target.value.trim() === '' ? undefined : num(e.target.value, 0) })} /></label>)}
+        </div>
+        <h3>Other targets</h3>
+        <div className="row">
           <label>Fibre g (optional)<input type="number" min={0} value={edit.fibre ?? ''} onChange={e => setEdit({ ...edit, fibre: optNum(e.target.value) })} /></label>
           <label>Water ml<input type="number" min={0} step={250} value={edit.waterMl ?? ''} onChange={e => setEdit({ ...edit, waterMl: optNum(e.target.value) })} /></label>
           <label>Target change per week ({unit}, optional)<input type="number" step={0.05} value={edit.weeklyChange ?? ''} onChange={e => setEdit({ ...edit, weeklyChange: e.target.value.trim() === '' ? undefined : Number(e.target.value) })} /></label>
@@ -77,7 +84,7 @@ export default function Phases({ unit }: { unit: string }) {
     <div className="card"><h2>Nutrition phases</h2>
       <button className="btn" onClick={() => setEdit(blank())}>+ New phase</button>
       {phases.map(p => (
-        <div key={p.id} className="item"><div><strong>{p.name}</strong> <span className="chip">{GOAL[p.goal]}</span><div className="muted">{p.startDate} → {p.endDate ?? 'ongoing'} · {p.calories} kcal target{p.maintenance !== undefined ? ` (maintenance ${p.maintenance} ${signed(p.adjustment ?? 0)})` : ''} · P{p.protein} C{p.carbs} F{p.fat}{p.weeklyChange !== undefined ? ` · ${p.weeklyChange > 0 ? '+' : ''}${p.weeklyChange} ${unit}/wk` : ''}</div></div>
+        <div key={p.id} className="item"><div><strong>{p.name}</strong> <span className="chip">{GOAL[p.goal]}</span><div className="muted">{p.startDate} → {p.endDate ?? 'ongoing'} · {p.calories} kcal target{p.maintenance !== undefined ? ` (maintenance ${p.maintenance} ${signed(p.adjustment ?? 0)})` : ''} · P{p.protein} C{p.carbs} F{p.fat}{(p.restDayCalories !== undefined || p.restDayProtein !== undefined || p.restDayCarbs !== undefined || p.restDayFat !== undefined) ? ` · Rest ${p.restDayCalories ?? p.calories} kcal, P${p.restDayProtein ?? p.protein} C${p.restDayCarbs ?? p.carbs} F${p.restDayFat ?? p.fat}` : ''}{p.weeklyChange !== undefined ? ` · ${p.weeklyChange > 0 ? '+' : ''}${p.weeklyChange} ${unit}/wk` : ''}</div></div>
           <div className="row"><button className="btn ghost sm" onClick={() => setEdit({ ...p, ...phaseEnergy(p) })}>Edit</button>
             {!p.endDate && <button className="btn ghost sm" onClick={() => db.phases.update(p.id, { endDate: todayISO() })}>End today</button>}
             <button className="btn ghost sm" onClick={() => { if (confirm('Delete this phase? Food logs are kept.')) db.phases.delete(p.id); }}>Delete</button></div></div>))}

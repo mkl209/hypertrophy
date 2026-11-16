@@ -121,10 +121,18 @@ export interface NutritionPhase {
   adjustment?: number;
   /** ± kcal that still counts as on target. Defaults to 100 when unset. */
   tolerance?: number;
+  /** Optional rest-day targets; absent values fall back to the standard daily target. */
+  restDayCalories?: number; restDayProtein?: number; restDayCarbs?: number; restDayFat?: number;
 }
 export interface FoodEntry { id: ID; date: string; name: string; calories: number; protein: number; carbs: number; fat: number; fibre: number; createdAt: number; mealId?: string; source?: 'manual' | 'open-food-facts'; foodCode?: string; servingGrams?: number }
 export interface WaterLog { date: string; ml: number }
-export interface Supplement { id: ID; name: string; dose?: number; unit: string; frequency: string; timing: string; notes?: string; archived: boolean }
-export interface SupplementLog { id: ID; supplementId: ID; date: string; taken: boolean }
+export type SupplementEvidence = 'strong' | 'moderate' | 'limited' | 'insufficient' | 'not-rated';
+export interface Supplement {
+  id: ID; name: string; dose?: number; unit: string; frequency: string; timing: string; notes?: string; archived: boolean;
+  category?: string; benefit?: string; evidence?: SupplementEvidence; typicalDose?: string; precautions?: string;
+  caffeineMg?: number; costPerUnit?: number; stockQuantity?: number; stockUnit?: string; expiryDate?: string;
+  scheduleDays?: number[];
+}
+export interface SupplementLog { id: ID; supplementId: ID; date: string; taken: boolean; doseTaken?: number; unit?: string; time?: string; caffeineMg?: number; notes?: string }
 /** One entry per date. `bodyFat` is an optional estimated percentage (e.g. 15.2). */
 export interface BodyweightEntry { date: string; weight: number; bodyFat?: number; notes?: string }

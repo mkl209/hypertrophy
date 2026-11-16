@@ -5,6 +5,8 @@ import { isValidISODate, toDayNumber, todayISO, addDays } from '../../core/calen
 import { movingAverage, sumFoods, weeklyRate } from '../../core/nutrition/nutrition.ts';
 import { toleranceOf, withinTarget } from '../../core/nutrition/calories.ts';
 import LineChart from '../../ui/LineChart.tsx';
+import { adaptiveCalorieSuggestion } from '../../core/nutrition/adaptive.ts';
+import { phaseEnergy } from '../../core/nutrition/calories.ts';
 
 export default function Weight({ unit }: { unit: string }) {
   const entries = useLiveQuery(() => db.weights.orderBy('date').toArray(), []) ?? [];
@@ -21,6 +23,7 @@ export default function Weight({ unit }: { unit: string }) {
   const loggedDays = new Set(foods.map(f => f.date)).size;
   const avgKcal = loggedDays ? sumFoods(foods).calories / loggedDays : null;
   const phase = latest ? phases.filter(p => p.startDate <= latest.date && (!p.endDate || latest.date <= p.endDate)).sort((a, b) => b.startDate.localeCompare(a.startDate))[0] : undefined;
+  const suggestion = phase ? adaptiveCalorieSuggestion(entries, foods, phase, unit === 'lb' ? 'lb' : 'kg') : undefined;
 
   // Body fat is optional per entry, so work from the raw entries (not the moving-average rows).
   const bfEntries = entries.flatMap(e => (e.bodyFat != null ? [{ date: e.date, weight: e.weight, bf: e.bodyFat }] : []));
@@ -56,6 +59,14 @@ export default function Weight({ unit }: { unit: string }) {
         {bfEntries.length >= 2 && <><h3>Estimated body fat</h3>
           <LineChart unit=" %" series={[{ name: 'Estimates', color: '#7a727b', dots: true, points: bfEntries.map(e => ({ x: toDayNumber(e.date), y: e.bf })) }, { name: '3-estimate average', color: 'var(--accent)', points: bfAvg.map(e => ({ x: toDayNumber(e.date), y: e.avg })) }]} /></>}
       </div>
+      {phase && suggestion && <div className="card"><h2>Adaptive calorie coach</h2>
+        <p className="muted sm2">Suggestions use your recent weight trend and food logs. Nothing changes until you explicitly accept a recommendation.</p>
+        <p><strong>{suggestion.status === 'insufficient-data' ? 'More data needed' : suggestion.status === 'on-track' ? 'On track' : suggestion.status === 'no-rate-target' ? 'Set a weekly weight target' : 'Adjustment to consider'}</strong></p>
+        <p>{suggestion.message}</p>
+        <div className="muted sm2">Average logged intake: {suggestion.averageCalories !== undefined ? `${suggestion.averageCalories} kcal/day` : 'not available'} · Weight trend: {suggestion.currentRate !== undefined ? `${suggestion.currentRate > 0 ? '+' : ''}${suggestion.currentRate.toFixed(2)} ${unit}/week` : 'not available'} · Target: {suggestion.targetRate !== undefined ? `${suggestion.targetRate > 0 ? '+' : ''}${suggestion.targetRate.toFixed(2)} ${unit}/week` : 'not configured'} · Food logging: {suggestion.loggedDays}/14 days · Weigh-ins: {suggestion.weighIns}</div>
+        {suggestion.suggestedCalories !== undefined && suggestion.adjustment !== undefined && suggestion.adjustment !== 0 && <div className="row"><strong>Suggested target: {suggestion.suggestedCalories} kcal ({suggestion.adjustment > 0 ? '+' : ''}{suggestion.adjustment} kcal)</strong><button className="btn" onClick={async () => { const energy = phaseEnergy(phase); const nextAdjustment = energy.adjustment + suggestion.adjustment!; const carbDelta = Math.round(suggestion.adjustment! / 4); const nextCarbs = Math.max(0, phase.carbs + carbDelta); const hasRestOverrides = phase.restDayCalories !== undefined || phase.restDayProtein !== undefined || phase.restDayCarbs !== undefined || phase.restDayFat !== undefined; await db.phases.update(phase.id, { maintenance: energy.maintenance, adjustment: nextAdjustment, calories: energy.maintenance + nextAdjustment, carbs: nextCarbs, ...(hasRestOverrides ? { restDayCalories: (phase.restDayCalories ?? phase.calories) + suggestion.adjustment!, restDayCarbs: Math.max(0, (phase.restDayCarbs ?? phase.carbs) + carbDelta) } : {}) }); }}>Accept suggestion</button></div>}
+        {suggestion.status === 'on-track' && <p className="muted">No change recommended.</p>}
+      </div>}
       <div className="card"><h2>History</h2>
         {[...ma].reverse().slice(0, 30).map(e => { const b = bfByDate.get(e.date); return <div key={e.date} className="item"><span>{e.date}</span><span><strong>{e.weight}</strong> {unit} <span className="muted">(avg {e.avg.toFixed(1)}){b != null ? ` · ${b}% BF` : ''}</span> <button className="btn ghost sm" onClick={() => db.weights.delete(e.date)}>Delete</button></span></div>; })}
         {entries.length === 0 && <p className="muted">No weigh-ins yet.</p>}

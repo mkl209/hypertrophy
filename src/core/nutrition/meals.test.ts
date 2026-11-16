@@ -21,11 +21,22 @@ test('meal targets sum to daily macros and bias carbs toward training', () => {
   assert.ok(targets.find(x => x.meal.id === 'pre-workout')!.fat < targets.find(x => x.meal.id === 'dinner')!.fat);
 });
 
-test('logging food redistributes remaining macros across meals not yet logged', () => {
+test('logging a mostly complete meal subtracts its logged macros from the remaining day', () => {
   const logged = [{ id: 'f', date: '2026-11-16', name: 'Meal', calories: 600, protein: 40, carbs: 70, fat: 15, fibre: 5, createdAt: 1, mealId: 'breakfast' }];
   const targets = allocateMealTargets(phase, DEFAULT_NUTRITION_SCHEDULE.meals, logged);
   assert.equal(targets.filter(x => x.meal.id !== 'breakfast').reduce((n, x) => n + x.protein, 0), phase.protein - 40);
-  assert.equal(targets.find(x => x.meal.id === 'breakfast')!.redistributed, false);
+  assert.equal(targets.find(x => x.meal.id === 'breakfast')!.redistributed, true);
   assert.equal(targets.find(x => x.meal.id === 'lunch')!.redistributed, true);
   assert.ok(targets.find(x => x.meal.id === 'lunch')!.protein > 0);
+});
+
+
+test('a small snack logged to a meal does not mark the meal complete or double-count its macros', () => {
+  const banana = [{ id:'banana', date:'2026-11-16', name:'Banana', calories:105, protein:1.3, carbs:27, fat:0.4, fibre:3, createdAt:1, mealId:'breakfast' }];
+  const targets = allocateMealTargets(phase, DEFAULT_NUTRITION_SCHEDULE.meals, banana);
+  const breakfast = targets.find(x=>x.meal.id==='breakfast')!;
+  assert.ok(breakfast.carbs > 0);
+  assert.ok(breakfast.carbs < allocateMealTargets(phase, DEFAULT_NUTRITION_SCHEDULE.meals).find(x=>x.meal.id==='breakfast')!.carbs);
+  assert.equal(Number(targets.reduce((n,x)=>n+x.protein,0).toFixed(1)), Number((phase.protein-banana[0].protein).toFixed(1)));
+  assert.equal(Number(targets.reduce((n,x)=>n+x.carbs,0).toFixed(1)), Number((phase.carbs-banana[0].carbs).toFixed(1)));
 });
