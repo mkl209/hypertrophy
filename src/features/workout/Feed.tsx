@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/db.ts';
-import { weekIndex } from '../../core/calendar/dates.ts';
+import { addDays, diffDays, weekIndex } from '../../core/calendar/dates.ts';
 import { recommend, type PrevSession, type Rec } from '../../core/progression/engine.ts';
-import { assessReadiness } from '../../core/progression/readiness.ts';
+import { assessReadiness, latestFor } from '../../core/progression/readiness.ts';
 import { FINDING_BY_ID } from '../../research/findings.ts';
-import type { CompletedWorkout, Exercise, ExperienceLevel, Strategy, WorkoutDraft } from '../../core/types/index.ts';
+import type { CompletedWorkout, Exercise, ExperienceLevel, PostWorkoutFeedback, Strategy, WorkoutDraft } from '../../core/types/index.ts';
 
 function sessionsFor(history: CompletedWorkout[], exerciseId: string): PrevSession[] {
   return [...history].sort((a, b) => b.finishedAt - a.finishedAt).flatMap(w => {
@@ -14,6 +14,14 @@ function sessionsFor(history: CompletedWorkout[], exerciseId: string): PrevSessi
     return sets.length ? [{ date: w.date, sets }] : [];
   }).slice(0, 3);
 }
+
+/** Feedback from the last workout that included this exercise; ignored once it is more than 10 days old. */
+function feedbackFor(history: CompletedWorkout[], all: PostWorkoutFeedback[], exerciseId: string, date: string): PostWorkoutFeedback | undefined {
+  const w = [...history].sort((a, b) => b.finishedAt - a.finishedAt).find(x => x.exercises.some(e => e.exerciseId === exerciseId));
+  if (!w || diffDays(date, w.date) > 10) return undefined;
+  return all.filter(f => f.workoutId === w.id).sort((a, b) => b.createdAt - a.createdAt)[0];
+}
+
 const rng = (t: { weight: number | null; repMin: number; repMax: number }, unit: string) =>
   `${t.weight === null ? 'heavier' : `${t.weight} ${unit}`} × ${t.repMin === t.repMax ? t.repMin : `${t.repMin}–${t.repMax}`}`;
 
@@ -22,21 +30,31 @@ export default function Feed({ d, history, exercises, level, enabled, defaultStr
   onApply: (exId: string, rec: Rec) => void; onStart: () => void; onBack: () => void;
 }) {
   const meso = useLiveQuery(() => (d.mesocycleId ? db.mesocycles.get(d.mesocycleId) : undefined), [d.mesocycleId]);
-  const fb = useLiveQuery(async () => (await db.feedback.toArray()).sort((a, b) => b.createdAt - a.createdAt)[0], []);
+  const feedback = useLiveQuery(() => db.feedback.toArray(), []) ?? [];
+  const ydate = addDays(d.checkin?.date ?? d.date, -1);
+  const yRows = useLiveQuery(() => db.checkins.where('date').equals(ydate).toArray(), [ydate]);
+  const yesterday = yRows ? latestFor(yRows, ydate) : undefined;
   const [applied, setApplied] = useState<Record<string, boolean>>({});
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
-  const readiness = assessReadiness(d.checkin);
+  const readiness = assessReadiness(d.checkin, yesterday);
   const prog = meso?.progression ?? { strategy: defaultStrategy };
   const wk = meso ? Math.max(0, weekIndex(meso.startDate, d.date)) : 0;
 
   return (
     <div className="card">
       <h2>{d.templateName} · pre-workout feed</h2>
-      {d.checkin ? <p className="muted">Check-in: readiness {readiness.level}{readiness.negatives.length ? ` (${readiness.negatives.join(', ')})` : ''}{readiness.cautions.length ? ` · ${readiness.cautions.join(', ')}` : ''}.</p> : <p className="muted">Check-in skipped, so readiness is not considered.</p>}
+      {d.checkin || yesterday
+        ? <p className="muted">Readiness {readiness.level}{readiness.negatives.length ? ` (${readiness.negatives.join(', ')})` : ''}{readiness.cautions.length ? ` · ${readiness.cautions.join(', ')}` : ''}.{!d.checkin ? ' No check-in today, so only yesterday’s counts, at reduced weight.' : ''}</p>
+        : <p className="muted">No check-in, so readiness is not considered.</p>}
       {!enabled && <p className="muted">Recommendations are turned off in Settings. You can still see your last performance below.</p>}
       {d.exercises.map(e => {
         const sessions = sessionsFor(history, e.exerciseId);
-        const rec = recommend({ progression: prog, level, prescribed: e.prescribed, sessions, readiness, lastFeedback: fb ? { difficulty: fb.difficulty, fatigue: fb.fatigue, performance: fb.performance } : undefined, weekIndex: wk, totalWeeks: meso?.weeks ?? 0, step: exercises.find(x => x.id === e.exerciseId)?.defaults.increment });
+        const fb = feedbackFor(history, feedback, e.exerciseId, d.date);
+        const rec = recommend({
+          progression: prog, level, prescribed: e.prescribed, sessions, readiness,
+          lastFeedback: fb ? { difficulty: fb.difficulty, fatigue: fb.fatigue, performance: fb.performance, soreness: fb.soreness, workload: fb.workload } : undefined,
+          weekIndex: wk, totalWeeks: meso?.weeks ?? 0, step: exercises.find(x => x.id === e.exerciseId)?.defaults.increment
+        });
         return (
           <div key={e.id} className="item col">
             <strong>{e.name}</strong>
