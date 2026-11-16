@@ -46,3 +46,12 @@ test('running sessions are included in backup export and restore', () => {
   const restored = applyImport(emptyTables(), backup.backup!, 'replace');
   assert.deepEqual(restored.runs, original.runs);
 });
+
+test('saved recipes are included in backup export and restore', () => {
+  const original = tables();
+  original.recipes = [{ id: 'recipe-1', name: 'Chicken rice bowl', servings: 2, ingredients: [{ id: 'i1', name: 'Chicken', quantity: '200 g' }], calories: 520, protein: 42, carbs: 60, fat: 12, fibre: 5 }];
+  const backup = validateBackup(JSON.parse(JSON.stringify(buildBackup(original, 'x'))));
+  assert.equal(backup.ok, true);
+  const restored = applyImport(emptyTables(), backup.backup!, 'replace');
+  assert.deepEqual(restored.recipes, original.recipes);
+});

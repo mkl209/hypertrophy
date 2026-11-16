@@ -9,6 +9,14 @@ export default function Templates() {
   const exercises = useLiveQuery(() => db.exercises.filter(e => !e.archived).sortBy('name'), []) ?? [];
   const [edit, setEdit] = useState<WorkoutTemplate | null>(null);
   const [err, setErr] = useState('');
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [pickMuscle, setPickMuscle] = useState('');
+  const [pickEquipment, setPickEquipment] = useState('');
+  const [pickType, setPickType] = useState('');
+  const [pickQuery, setPickQuery] = useState('');
+  const muscles = useLiveQuery(() => db.muscles.toArray(), []) ?? [];
+  const filteredExercises = exercises.filter(e => (!pickQuery || e.name.toLowerCase().includes(pickQuery.toLowerCase())) && (!pickMuscle || e.primaryMuscles.includes(pickMuscle) || e.secondaryMuscles.includes(pickMuscle)) && (!pickEquipment || e.equipment.includes(pickEquipment as any)) && (!pickType || e.mechanic === pickType));
+  const reorder = (from: number, to: number) => setEdit(t => { if (!t || from === to) return t; const a=[...t.exercises]; const [item]=a.splice(from,1); a.splice(to,0,item); return {...t,exercises:a}; });
 
   const patchRow = (id: string, p: Partial<WorkoutTemplate['exercises'][number]>) => setEdit(t => t && ({ ...t, exercises: t.exercises.map(r => r.id === id ? { ...r, ...p } : r) }));
   const move = (i: number, d: number) => setEdit(t => { if (!t) return t; const a = [...t.exercises]; const j = i + d; if (j < 0 || j >= a.length) return t; [a[i], a[j]] = [a[j], a[i]]; return { ...t, exercises: a }; });
@@ -37,8 +45,8 @@ export default function Templates() {
         <label className="grow">Name<input type="text" value={edit.name} onChange={e => setEdit({ ...edit, name: e.target.value })} /></label>
       </div>
       {edit.exercises.map((r, i) => (
-        <div key={r.id} className="tx-item">
-          <strong className="tx-name" title={r.exerciseName}>{i + 1}. {r.exerciseName}</strong>
+        <div key={r.id} className="tx-item tx-draggable" draggable onDragStart={e => { setDragIndex(i); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(i)); }} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); const from=Number(e.dataTransfer.getData('text/plain')); if(Number.isInteger(from)) reorder(from,i); setDragIndex(null); }} onDragEnd={() => setDragIndex(null)} data-dragging={dragIndex===i}>
+          <strong className="tx-name" title={r.exerciseName}><span className="drag-grip" aria-hidden="true">⠿</span> {i + 1}. {r.exerciseName}</strong>
           <span className="tx-act">
             <button className="btn ghost xs" onClick={() => move(i, -1)} aria-label="Move up">↑</button>
             <button className="btn ghost xs" onClick={() => move(i, 1)} aria-label="Move down">↓</button>
@@ -57,12 +65,13 @@ export default function Templates() {
           </details>
         </div>
       ))}
+      <div className="template-exercise-picker"><div className="ci-sec">Exercise selection <span className="muted xf-hint">Filter, click to add, or drag a tile into the workout</span></div><div className="row"><label>Search<input value={pickQuery} onChange={e=>setPickQuery(e.target.value)} placeholder="Find exercise" /></label><label>Muscle group<select value={pickMuscle} onChange={e=>setPickMuscle(e.target.value)}><option value="">All muscles</option>{muscles.filter(m=>!m.archived).map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></label><label>Equipment<select value={pickEquipment} onChange={e=>setPickEquipment(e.target.value)}><option value="">All equipment</option>{['barbell','dumbbell','cable','machine','smith','plate-loaded','bodyweight','band','kettlebell','other'].map(x=><option key={x}>{x}</option>)}</select></label><label>Type<select value={pickType} onChange={e=>setPickType(e.target.value)}><option value="">All types</option><option value="compound">Compound</option><option value="isolation">Isolation</option></select></label></div><div className="exercise-pick-grid">{filteredExercises.map(ex=><button type="button" className="exercise-pick-tile" key={ex.id} draggable onDragStart={e=>{e.dataTransfer.setData('text/exercise-id',ex.id);e.dataTransfer.effectAllowed='copy';}} onClick={()=>add(ex.id)}><strong>{ex.name}</strong><span className="muted sm2">{ex.equipment.join(', ')||'No equipment'} · {ex.mechanic}</span></button>)}</div><div className="template-dropzone" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const id=e.dataTransfer.getData('text/exercise-id');if(id)add(id);}}>Drop exercise tiles here to add them</div></div>
       <div className="row">
         <select aria-label="Add exercise" value="" onChange={e => add(e.target.value)}><option value="">+ Add exercise…</option>{exercises.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}</select>
         <button className="btn sm" onClick={save}>Save</button>
         <button className="btn ghost sm" onClick={() => { setEdit(null); setErr(''); }}>Cancel</button>
       </div>
-      <p className="muted sm2 cmp-p">Saving updates this template for all scheduled sessions that use it. Completed workouts keep their own record.</p>
+      <p className="muted sm2 cmp-p">Drag the grip or tile to reorder exercises. The arrow controls remain available. Saving updates this template for all scheduled sessions that use it. Completed workouts keep their own record.</p>
       {err && <p role="alert" className="err cmp-p">{err}</p>}
     </div>
   );

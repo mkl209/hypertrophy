@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import { DEFAULT_MUSCLES, DEFAULT_SETTINGS, type Equipment, type Exercise, type Mesocycle, type Microcycle, type MuscleGroup, type ScheduledWorkout, type CompletedWorkout, type PreWorkoutCheckIn, type PostWorkoutFeedback, type WorkoutDraft, type NutritionPhase, type FoodEntry, type WaterLog, type Supplement, type SupplementLog, type BodyweightEntry, type UserSettings, type WorkoutTemplate, type RunSession } from '../core/types/index.ts';
+import { DEFAULT_MUSCLES, DEFAULT_SETTINGS, type Equipment, type Exercise, type Mesocycle, type Microcycle, type MuscleGroup, type ScheduledWorkout, type CompletedWorkout, type PreWorkoutCheckIn, type PostWorkoutFeedback, type WorkoutDraft, type NutritionPhase, type FoodEntry, type WaterLog, type Supplement, type SupplementLog, type BodyweightEntry, type UserSettings, type WorkoutTemplate, type RunSession, type Recipe } from '../core/types/index.ts';
 
 export class AppDB extends Dexie {
   settings!: Table<UserSettings, string>;
@@ -20,6 +20,7 @@ export class AppDB extends Dexie {
   suppLogs!: Table<SupplementLog, string>;
   weights!: Table<BodyweightEntry, string>;
   runs!: Table<RunSession, string>;
+  recipes!: Table<Recipe, string>;
   constructor() {
     super('hypertrophy-coach');
     // Later phases add tables via db.version(2).stores({...}); never edit a shipped version.
@@ -51,6 +52,7 @@ export class AppDB extends Dexie {
     this.version(5).stores({
       runs: 'id, date, createdAt'
     });
+    this.version(6).stores({ recipes: 'id, name, updatedAt' });
   }
 }
 export const db = new AppDB();

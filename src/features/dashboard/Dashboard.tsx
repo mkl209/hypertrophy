@@ -25,6 +25,9 @@ export default function Dashboard() {
   const phases = useLiveQuery(() => db.phases.toArray(), []) ?? [];
   const foods = useLiveQuery(() => db.foods.where('date').between(addDays(today, -6), today, true, true).toArray(), [today]) ?? [];
   const recentCheckins = useLiveQuery(() => db.checkins.where('date').between(addDays(today, -13), today, true, true).toArray(), [today]) ?? [];
+  const recentRuns = useLiveQuery(() => db.runs.where('date').between(addDays(today, -13), today, true, true).toArray(), [today]) ?? [];
+  const weeklyRuns = useLiveQuery(() => db.runs.where('date').between(addDays(today, -6), today, true, true).toArray(), [today]) ?? [];
+  const weeklyCompleted = useLiveQuery(() => db.completed.where('date').between(addDays(today, -6), today, true, true).toArray(), [today]) ?? [];
   const recentCompleted = useLiveQuery(() => db.completed.where('date').between(addDays(today, -13), today, true, true).toArray(), [today]) ?? [];
   const allFeedback = useLiveQuery(() => db.feedback.toArray(), []) ?? [];
   const waterLogs = useLiveQuery(() => db.water.where('date').between(addDays(today, -6), today, true, true).toArray(), [today]) ?? [];
@@ -59,7 +62,14 @@ export default function Dashboard() {
     const p = phaseForDate(phases, w.date);
     return w.ml >= (p?.waterMl ?? 3000) * .8;
   }).length;
+  const runningLoad = recentRuns.reduce((sum, r) => sum + r.distanceKm * r.effort, 0);
+  const runDistance = recentRuns.reduce((sum, r) => sum + r.distanceKm, 0);
+  const weeklyRunLoad = weeklyRuns.reduce((sum, r) => sum + r.distanceKm * r.effort, 0);
+  const weeklyRunDistance = weeklyRuns.reduce((sum, r) => sum + r.distanceKm, 0);
+  const weeklyResistanceSets = weeklyCompleted.reduce((sum, w) => sum + w.exercises.reduce((n, ex) => n + ex.sets.filter(set => set.kind === 'working').length, 0), 0);
+  const combinedTrainingStress = weeklyRunLoad + weeklyResistanceSets * (postFatigueAvg ?? 2.5);
   const recoveryAdvice: string[] = [];
+  if (recentRuns.length >= 3 && runningLoad >= 45) recoveryAdvice.push('Running has added a substantial recent load (' + runDistance.toFixed(1) + ' km across ' + recentRuns.length + ' runs). Consider spacing harder runs away from demanding lower-body sessions and monitor leg soreness.');
   if (readinessAvg !== null && readinessAvg < 3) recoveryAdvice.push('Readiness has averaged below the midpoint. Consider reducing today’s load or choosing a recovery session.');
   if (sleepAvg !== null && sleepAvg < 3) recoveryAdvice.push('Sleep quality has been low across recent check-ins. Prioritise sleep consistency before adding training stress.');
   if ((fatigueAvg !== null && fatigueAvg >= 4) || (postFatigueAvg !== null && postFatigueAvg >= 4)) recoveryAdvice.push('Both pre-session or post-session fatigue signals are elevated. Consider temporarily reducing volume or intensity.');
@@ -90,8 +100,9 @@ export default function Dashboard() {
         <h2>Recovery advice</h2>
         <p className="muted">A practical summary of your recent pre-workout check-ins, post-workout feedback and nutrition logs. Based on recorded data, not a medical assessment.</p>
         <ul>{recoveryAdvice.map((item, i) => <li key={i}>{item}</li>)}</ul>
-        <p className="muted sm2">Signals used: {recentCheckins.length} pre-check-ins · {feedbackForPeriod.length} post-workout ratings · {loggedNutritionDates.length} nutrition days · {waterLogs.length} hydration logs (last 7 days).</p>
+        <p className="muted sm2">Signals used: {recentCheckins.length} pre-check-ins · {feedbackForPeriod.length} post-workout ratings · {loggedNutritionDates.length} nutrition days · {waterLogs.length} hydration logs · {recentRuns.length} runs / {runDistance.toFixed(1)} km (last 14 days).</p>
       </div>
+      <div className="card"><h2>Weekly training load · last 7 days</h2><div className="stats"><Stat label="Running distance" value={`${weeklyRunDistance.toFixed(1)} km`} sub={`${weeklyRuns.length} logged runs`} /><Stat label="Running load" value={weeklyRunLoad.toFixed(0)} sub="km × effort rating (1–5)" /><Stat label="Resistance work" value={`${weeklyResistanceSets} sets`} sub="working sets · last 7 days" /><Stat label="Combined stress estimate" value={combinedTrainingStress.toFixed(0)} sub="running load + sets × post-session fatigue" /></div><p className="muted sm2">Running and resistance sessions are both included in this rolling training-stress estimate. The score is a personal trend indicator, not a validated physiological load measure. Use the run log to keep distance, duration and effort current.</p></div>
       <div className="grid2">
         <div className="card"><h2>Today</h2>
           {todays.filter(w => !meso || w.mesocycleId === meso.id).map(w => <WorkoutCard key={w.id} w={w} t={tpl(w.templateId)} today={today} />)}

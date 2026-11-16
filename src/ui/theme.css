@@ -399,3 +399,31 @@ input[type=range].ci-range:focus-visible::-moz-range-thumb { box-shadow:0 0 0 4p
 .nutrition-group { padding-top:2px; margin-top:8px }
 .nutrition-group + .nutrition-group { border-top:1px solid var(--border); padding-top:8px }
 .nutrition-group .tabs { margin:0; display:flex; width:max-content; max-width:100%; flex-wrap:wrap }
+
+/* Recipe planning and drag-friendly programme workspace */
+.recipe-editor { display:grid; gap:12px; }
+.recipe-macros { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:10px; }
+.recipe-tile { border:1px solid var(--line,rgba(255,255,255,.12)); border-radius:14px; padding:14px; margin-top:10px; display:grid; gap:10px; background:var(--surface); }
+.recipe-main { display:flex; flex-wrap:wrap; align-items:baseline; gap:8px 14px; }
+.recipe-actions { display:flex; flex-wrap:wrap; align-items:end; gap:8px; }
+.recipe-actions label { min-width:90px; }
+.recipe-actions input { width:100%; }
+.tx-draggable { cursor:grab; transition:opacity .15s, transform .15s, border-color .15s; }
+.tx-draggable:active { cursor:grabbing; }
+.tx-draggable[data-dragging="true"] { opacity:.45; transform:scale(.985); }
+.drag-grip { display:inline-block; color:var(--muted); cursor:grab; user-select:none; padding:0 5px; font-size:1.15em; }
+.exercise-tile { border:1px solid var(--line,rgba(255,255,255,.12)); border-radius:12px; padding:12px; margin:8px 0; }
+.exercise-tile:hover,.recipe-tile:hover { border-color:var(--accent); }
+.nutrition-group { margin-top:14px; }
+.nutrition-hub .tabs { flex-wrap:wrap; }
+@media(max-width:650px) { .recipe-actions { align-items:stretch; } .recipe-actions label { flex:1 1 100px; } }
+.template-exercise-picker { margin:16px 0; padding:14px; border:1px solid var(--line,rgba(255,255,255,.14)); border-radius:14px; background:color-mix(in srgb,var(--surface) 75%,transparent); }
+.exercise-pick-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(175px,1fr)); gap:8px; max-height:280px; overflow:auto; margin-top:10px; }
+.exercise-pick-tile { display:grid; gap:5px; text-align:left; padding:11px; border:1px solid var(--line,rgba(255,255,255,.14)); border-radius:10px; background:var(--surface); color:inherit; cursor:grab; }
+.exercise-pick-tile:hover { border-color:var(--accent); transform:translateY(-1px); }
+.template-dropzone { margin-top:10px; padding:14px; text-align:center; border:1px dashed var(--accent); border-radius:10px; color:var(--muted); }
+.wk-day-card { min-height:90px; padding:12px; border:1px solid var(--line,rgba(255,255,255,.14)); border-radius:12px; background:var(--surface); }
+.wk-day-card:focus-within,.wk-day-card:hover { border-color:var(--accent); }
+.template-library { margin:14px 0; padding:14px; border:1px solid var(--line,rgba(255,255,255,.14)); border-radius:14px; }
+.cmp .cgrid label { padding:10px; border-radius:10px; background:color-mix(in srgb,var(--surface) 75%,transparent); }
+.cmp .cmp-head { align-items:center; gap:14px; }

@@ -139,3 +139,8 @@ export interface BodyweightEntry { date: string; weight: number; bodyFat?: numbe
 
 /** Standalone running activity; stored separately from resistance-training sessions. */
 export interface RunSession { id: ID; date: string; distanceKm: number; durationMinutes: number; effort: number; notes?: string; createdAt: number }
+
+
+/** Reusable recipe with per-serving nutrition and editable ingredient list. */
+export interface RecipeIngredient { id: ID; name: string; quantity: string }
+export interface Recipe { id: ID; name: string; servings: number; ingredients: RecipeIngredient[]; calories: number; protein: number; carbs: number; fat: number; fibre: number; instructions?: string; createdAt: number; updatedAt: number }

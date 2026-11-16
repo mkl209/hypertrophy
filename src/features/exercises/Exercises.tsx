@@ -103,8 +103,8 @@ export default function Exercises() {
         <button className="btn" onClick={() => setEdit(blank())}>+ New exercise</button>
       </div>
       {list.map(e => (
-        <div key={e.id} className="item">
-          <div><strong>{e.name}</strong> {e.archived && <span className="badge">archived</span>}<div className="muted">{e.primaryMuscles.map(mname).join(', ')}{e.secondaryMuscles.length ? ` · also ${e.secondaryMuscles.map(mname).join(', ')}` : ''} · {e.equipment.join(', ') || 'no equipment set'}</div></div>
+        <div key={e.id} className="item exercise-tile" draggable onDragStart={ev => { ev.dataTransfer.setData('text/plain', e.id); ev.dataTransfer.effectAllowed = 'copy'; }}>
+          <div><strong><span className="drag-grip" aria-hidden="true">⠿</span> {e.name}</strong> {e.archived && <span className="badge">archived</span>}<div className="muted">{e.primaryMuscles.map(mname).join(', ')}{e.secondaryMuscles.length ? ` · also ${e.secondaryMuscles.map(mname).join(', ')}` : ''} · {e.equipment.join(', ') || 'no equipment set'}</div></div>
           <div className="row">
             <button className="btn ghost" onClick={() => setEdit(e)}>Edit</button>
             <button className="btn ghost" onClick={() => setEdit({ ...e, id: newId(), name: `${e.name} (copy)`, builtIn: false, createdAt: Date.now() })}>Clone</button>

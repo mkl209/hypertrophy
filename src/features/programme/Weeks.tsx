@@ -28,13 +28,14 @@ export default function Weeks() {
       </div>
       <div className="cgrid wk-days">
         {DAYS.map((d, wd) => (
-          <label key={d}>{d.slice(0, 3)}
+          <label key={d} className="wk-day-card" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const id=e.dataTransfer.getData('text/template-id');if(id)setDay(wd,id);}}>{d.slice(0, 3)}
             <select value={edit.days.find(x => x.weekday === wd)?.templateId ?? ''} onChange={e => setDay(wd, e.target.value)}>
               <option value="">Rest</option>{templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </label>
         ))}
       </div>
+      <div className="template-library"><div className="ci-sec">Workout templates <span className="muted xf-hint">Drag a tile onto a weekday, or use the dropdowns above</span></div><div className="exercise-pick-grid">{templates.map(t=><button type="button" className="exercise-pick-tile" key={t.id} draggable onDragStart={e=>{e.dataTransfer.setData('text/template-id',t.id);e.dataTransfer.effectAllowed='copy';}}><strong>{t.name}</strong><span className="muted sm2">{t.exercises.length} exercises · {t.exercises.reduce((n,x)=>n+x.sets,0)} sets</span></button>)}</div></div>
       {templates.length === 0 && <p className="err cmp-p">Create workout templates first.</p>}
       {err && <p role="alert" className="err cmp-p">{err}</p>}
       <div className="row"><button className="btn sm" onClick={save}>Save</button><button className="btn ghost sm" onClick={() => { setEdit(null); setErr(''); }}>Cancel</button><span className="muted sm2">Leave a day on Rest for no training.</span></div>
