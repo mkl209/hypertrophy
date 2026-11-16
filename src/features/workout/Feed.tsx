@@ -56,9 +56,10 @@ export default function Feed({ d, history, exercises, settings, level, enabled, 
   };
   for (const w of history.filter(w => w.date >= weekStart && w.date <= weekEnd)) for (const e of w.exercises) addExerciseVolume(e.exerciseId, e.sets.filter(isWorking).length);
   for (const sw of scheduledThisWeek) { const template = templates.find(t => t.id === sw.templateId); for (const e of template?.exercises ?? []) addExerciseVolume(e.exerciseId, e.sets); }
-  const volumeExercises = d.exercises.map(e => { const ex = exerciseById.get(e.exerciseId); return { id: e.id, sets: e.prescribed.sets, primaryMuscles: ex?.primaryMuscles ?? [], secondaryMuscles: ex?.secondaryMuscles ?? [] }; });
-  const volumeAllocation = hasMusclePreferences ? allocateMuscleVolume(volumeExercises, projectedBase, musclePreferences, settings.secondaryMuscleWeight, prog.volume?.maxExtraSets ?? 2) : undefined;
   const wk = meso ? Math.max(0, weekIndex(meso.startDate, d.date)) : 0;
+  const plannedVolumeExtra = (prog.strategy === 'volume' || prog.strategy === 'hybrid') && prog.volume && !(prog.volume.deloadLastWeek && meso && wk === meso.weeks - 1) ? Math.min(wk * prog.volume.weeklySetChange, prog.volume.maxExtraSets) : 0;
+  const volumeExercises = d.exercises.map(e => { const ex = exerciseById.get(e.exerciseId); return { id: e.id, sets: e.prescribed.sets + plannedVolumeExtra, primaryMuscles: ex?.primaryMuscles ?? [], secondaryMuscles: ex?.secondaryMuscles ?? [] }; });
+  const volumeAllocation = hasMusclePreferences ? allocateMuscleVolume(volumeExercises, projectedBase, musclePreferences, settings.secondaryMuscleWeight, prog.volume?.maxExtraSets ?? 2) : undefined;
 
   return (
     <div className="card">

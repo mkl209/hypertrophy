@@ -7,8 +7,9 @@ import WeekView from './WeekView.tsx';
 import Phases from './Phases.tsx';
 import Supplements from './Supplements.tsx';
 import Weight from './Weight.tsx';
+import MealPlan from './MealPlan.tsx';
 
-const TABS = ['Today', 'Week', 'Phases', 'Supplements', 'Weight'] as const;
+const TABS = ['Today', 'Meals', 'Week', 'Phases', 'Supplements', 'Weight'] as const;
 export default function Nutrition() {
   const [tab, setTab] = useState<typeof TABS[number]>('Today');
   const [date, setDate] = useState(todayISO());
@@ -23,6 +24,7 @@ export default function Nutrition() {
         <button className="btn ghost sm" aria-label="Next day" onClick={() => setDate(addDays(date, tab === 'Week' ? 7 : 1))}>→</button>
         <button className="btn ghost sm" onClick={() => setDate(todayISO())}>Today</button></div>}
       {tab === 'Today' && <Today date={date} />}
+      {tab === 'Meals' && <MealPlan />}
       {tab === 'Week' && <WeekView date={date} />}
       {tab === 'Phases' && <Phases unit={unit} />}
       {tab === 'Supplements' && <Supplements date={date} />}

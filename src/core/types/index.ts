@@ -3,6 +3,10 @@ export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced';
 export type WeightUnit = 'kg' | 'lb';
 export type ThemeMode = 'light' | 'dark';
 
+export type MealRole = 'breakfast' | 'lunch' | 'pre-workout' | 'post-workout' | 'dinner' | 'bedtime' | 'snack';
+export interface MealSlot { id: string; name: string; role: MealRole; time: string; enabled: boolean; relativeToWorkout?: boolean; offsetMinutes?: number }
+export interface NutritionSchedule { workoutTime: string; meals: MealSlot[] }
+
 export interface UserSettings {
   id: 'settings';
   schemaVersion: number;
@@ -21,6 +25,7 @@ export interface UserSettings {
   secondaryMuscleWeight: number; // indirect-set contribution, always presented as an estimate
   /** Preferred weekly weighted-set range per muscle; these are guardrails, not targets to automatically reach. */
   muscleVolumePreferences?: Record<string, { min?: number; max?: number }>;
+  nutritionSchedule?: NutritionSchedule;
 }
 
 export interface MuscleGroup { id: ID; name: string; custom: boolean; archived: boolean }
@@ -117,7 +122,7 @@ export interface NutritionPhase {
   /** ± kcal that still counts as on target. Defaults to 100 when unset. */
   tolerance?: number;
 }
-export interface FoodEntry { id: ID; date: string; name: string; calories: number; protein: number; carbs: number; fat: number; fibre: number; createdAt: number }
+export interface FoodEntry { id: ID; date: string; name: string; calories: number; protein: number; carbs: number; fat: number; fibre: number; createdAt: number; mealId?: string; source?: 'manual' | 'open-food-facts'; foodCode?: string; servingGrams?: number }
 export interface WaterLog { date: string; ml: number }
 export interface Supplement { id: ID; name: string; dose?: number; unit: string; frequency: string; timing: string; notes?: string; archived: boolean }
 export interface SupplementLog { id: ID; supplementId: ID; date: string; taken: boolean }

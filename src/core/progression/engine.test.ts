@@ -16,10 +16,10 @@ test('spec example: reps before load', () => {
   assert.deepEqual(r.targets.map(t => [t.weight, t.repMin, t.repMax]), [[60, 10, 11], [60, 10, 11], [60, 9, 10]]);
   assert.ok(r.reasons.length > 0 && r.research.every(id => FINDING_BY_ID.has(id)));
 });
-test('top of range with good readiness suggests a load increase without a number', () => {
-  const r = recommend(ctx({ sessions: [sess([12, 12, 12])] }));
+test('top of range with good readiness suggests an exercise-increment load increase', () => {
+  const r = recommend(ctx({ sessions: [sess([12, 12, 12])], step: 2.5 }));
   assert.equal(r.action, 'increase_load');
-  assert.equal(r.targets[0].weight, null);
+  assert.equal(r.targets[0].weight, 62.5);
   assert.deepEqual([r.targets[0].repMin, r.targets[0].repMax], [8, 9]);
 });
 test('same performance but poor readiness does not blindly progress', () => {
@@ -34,6 +34,11 @@ test('one bad night alone is only a minor flag', () => {
   assert.equal(r.level, 'moderate');
   assert.equal(recommend(ctx({ sessions: [sess([12, 12, 12])], readiness: r })).action, 'increase_load');
 });
+test('joint pain or illness blocks progression even before an exercise has history', () => {
+  const noHistory = recommend(ctx({ sessions: [], readiness: assessReadiness(ci({ jointPain: 4 })) }));
+  assert.equal(noHistory.action, 'hold_caution');
+  assert.ok(noHistory.flags.includes('safety'));
+});
 test('joint pain or illness blocks progression and advises caution', () => {
   const r = recommend(ctx({ sessions: [sess([12, 12, 12])], readiness: assessReadiness(ci({ jointPain: 4 })) }));
   assert.equal(r.action, 'hold_caution');
@@ -45,7 +50,9 @@ test('underperformance holds the load and is flagged when persistent', () => {
   assert.ok(r.flags.includes('consistent-underperformance'));
   assert.ok(r.reasons.some(x => x.includes('not the automatic answer')));
 });
-test('sets harder than prescribed RIR hold the load; last-session feedback can too', () => {
+test('sets harder than prescribed RIR hold the load; missing RIR at the top also prevents a load jump', () => {
+  const noRir = { date: 'x', sets: [{ weight: 60, reps: 12 }, { weight: 60, reps: 12 }, { weight: 60, reps: 12 }] };
+  assert.equal(recommend(ctx({ sessions: [noRir], step: 2.5 })).action, 'maintain');
   assert.equal(recommend(ctx({ sessions: [sess([12, 12, 12], 0)] })).action, 'maintain');
   assert.equal(recommend(ctx({ sessions: [sess([12, 12, 12])], lastFeedback: { difficulty: 'hard', fatigue: 3, performance: 'met' } })).action, 'maintain');
 });
@@ -56,6 +63,9 @@ test('strategies: manual, rep and load', () => {
   assert.equal(recommend(ctx({ sessions: [] })).action, 'start');
 });
 test('volume progression adds sets only when recovery allows, and deloads', () => {
+  const noHistory = recommend(ctx({ progression: { strategy: 'hybrid', volume: { weeklySetChange: 1, maxExtraSets: 2, deloadLastWeek: false } }, sessions: [], weekIndex: 2 }));
+  assert.equal(noHistory.sets, 5);
+  assert.equal(noHistory.setsChange, 'increase');
   const v = { strategy: 'volume' as const, volume: { weeklySetChange: 1, maxExtraSets: 2, deloadLastWeek: true } };
   const up = recommend(ctx({ progression: v, weekIndex: 2 }));
   assert.equal(up.sets, 5); assert.equal(up.setsChange, 'increase'); assert.equal(up.targets.length, 5);
@@ -93,6 +103,8 @@ test('muscle-specific volume is integrated with ordinary progression and respect
   assert.equal(held.sets, 3);
   const noHistory = recommend(ctx({ sessions: [], muscleVolumePlan: plan }));
   assert.equal(noHistory.sets, 5);
+  const combined = recommend(ctx({ progression: { strategy: 'hybrid', volume: { weeklySetChange: 1, maxExtraSets: 2, deloadLastWeek: false } }, weekIndex: 2, muscleVolumePlan: plan }));
+  assert.equal(combined.sets, 7); // +2 planned volume and +1 muscle allocation, on top of 3 prescribed.
   const deload = recommend(ctx({ progression: { strategy: 'hybrid', volume: { weeklySetChange: 1, maxExtraSets: 2, deloadLastWeek: true } }, weekIndex: 4, muscleVolumePlan: plan }));
   assert.equal(deload.setsChange, 'deload');
   assert.equal(deload.sets, 2);

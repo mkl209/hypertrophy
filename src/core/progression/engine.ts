@@ -28,24 +28,29 @@ export function recommend(c: Ctx): Rec {
   const last = sessions[0]?.sets;
   const per = (n: number, f: (s: PrevSet) => Target): Target[] => Array.from({ length: n }, (_, i) => f(last![Math.min(i, last!.length - 1)]));
 
+  if (r.level === 'caution') {
+    return { ...base, action: 'hold_caution', flags: ['safety'], targets: Array.from({ length: p.sets }, () => ({ weight: last?.[0]?.weight ?? null, repMin: p.repMin, repMax: p.repMax })), summary: 'Skip progression today. Consider a lighter session, a different exercise, or rest.',
+      reasons: [`You reported ${r.cautions.join(' and ')}.`, 'Avoid training through concerning pain. This app cannot diagnose injuries; if it is persistent or sharp, get it checked by a qualified professional.'] };
+  }
+
   if (!last || last.length === 0) {
-    const deload = (prog.strategy === 'volume' || prog.strategy === 'hybrid') && prog.volume?.deloadLastWeek && c.totalWeeks > 1 && c.weekIndex === c.totalWeeks - 1;
-    const extra = c.muscleVolumePlan && prog.strategy !== 'manual' && r.level !== 'low' && r.level !== 'caution' && !deload ? Math.max(0, c.muscleVolumePlan.extraSets) : 0;
-    const sets = deload ? Math.max(1, Math.round(p.sets / 2)) : p.sets + extra;
-    return { ...base, sets, setsChange: deload ? 'deload' : extra > 0 ? 'increase' : 'none', summary: `No history yet. Choose a load that leaves about ${p.rir} reps in reserve.`, reasons: ['There is no earlier record of this exercise.', ...(extra > 0 ? c.muscleVolumePlan?.reasons ?? [] : []), ...(deload ? [`Deload week: sets reduced from ${p.sets} to ${sets}.`] : [])], research: ['rir-range', 'rir-accuracy'], targets: Array.from({ length: sets }, () => ({ weight: null, repMin: p.repMin, repMax: p.repMax })) };
+    const volume = (prog.strategy === 'volume' || prog.strategy === 'hybrid') ? prog.volume : undefined;
+    const deload = !!volume?.deloadLastWeek && c.totalWeeks > 1 && c.weekIndex === c.totalWeeks - 1;
+    const canAdd = r.level !== 'low';
+    const plannedExtra = canAdd && volume && !deload ? Math.min(Math.max(0, c.weekIndex * volume.weeklySetChange), volume.maxExtraSets) : 0;
+    const muscleExtra = c.muscleVolumePlan && prog.strategy !== 'manual' && canAdd && !deload ? Math.max(0, c.muscleVolumePlan.extraSets) : 0;
+    const sets = deload ? Math.max(1, Math.round(p.sets / 2)) : p.sets + plannedExtra + muscleExtra;
+    return { ...base, sets, setsChange: deload ? 'deload' : plannedExtra + muscleExtra > 0 ? 'increase' : 'none', summary: `No history yet. Choose a load that leaves about ${p.rir} reps in reserve.`, reasons: ['There is no earlier record of this exercise.', ...(plannedExtra > 0 ? [`Volume plan: +${plannedExtra} set${plannedExtra === 1 ? '' : 's'} this week.`] : []), ...(muscleExtra > 0 ? c.muscleVolumePlan?.reasons ?? [] : []), ...(deload ? [`Deload week: sets reduced from ${p.sets} to ${sets}.`] : [])], research: ['rir-range', 'rir-accuracy', ...(plannedExtra + muscleExtra > 0 ? ['volume-landmarks', 'volume-dose'] : [])], heuristics: ['No-history recommendations use the prescribed rep range and conservative volume increases.'], targets: Array.from({ length: sets }, () => ({ weight: null, repMin: p.repMin, repMax: p.repMax })) };
   }
   const same = (s: PrevSet): Target => ({ weight: s.weight, repMin: Math.min(s.reps, p.repMax), repMax: Math.min(s.reps, p.repMax) });
   if (prog.strategy === 'manual') return { ...base, action: 'manual', summary: 'Manual progression: no automatic change suggested.', reasons: [`Last time: ${fmt(last)}.`], targets: per(p.sets, same), heuristics: ['You chose to control progression yourself.'] };
 
-  if (r.level === 'caution') {
-    return { ...base, action: 'hold_caution', flags: ['safety'], targets: per(p.sets, same), summary: 'Skip progression today. Consider a lighter session, a different exercise, or rest.',
-      reasons: [`You reported ${r.cautions.join(' and ')}.`, 'Avoid training through concerning pain. This app cannot diagnose injuries; if it is persistent or sharp, get it checked by a qualified professional.'] };
-  }
-
   const top = last.every(s => s.reps >= p.repMax);
-  const rirOk = last.every(s => s.rir === undefined || s.rir >= p.rir - 1);
+  // Missing RIR is unknown, not proof that the set was within the target.
+  const rirKnown = last.every(s => s.rir !== undefined);
+  const rirOk = rirKnown && last.every(s => (s.rir as number) >= p.rir - 1);
   const rirs = last.filter(s => s.rir !== undefined).map(s => s.rir as number);
-  const harder = rirs.length > 0 && avg(rirs) < p.rir - 1;
+  const harder = rirs.some(rir => rir < p.rir - 1);
   const belowMin = last.some(s => s.reps < p.repMin);
   const drop = (a?: PrevSession, b?: PrevSession) => !!a && !!b && maxW(a.sets) === maxW(b.sets) && avg(a.sets.map(s => s.reps)) <= avg(b.sets.map(s => s.reps)) - 1;
   const declined = drop(sessions[0], sessions[1]);
@@ -59,7 +64,8 @@ export function recommend(c: Ctx): Rec {
   if (fbBad) hold.push('Your last post-workout feedback said the session was hard, very fatiguing, very sore, or below expectations.');
   if (belowMin) hold.push(`Last time at least one set fell below your ${p.repMin}-rep minimum.`);
   else if (declined) hold.push('Reps dropped compared with the session before, at the same load.');
-  if (harder) hold.push(`Sets were harder than prescribed (average RIR below ${p.rir - 1}).`);
+  if (harder) hold.push(`At least one working set was harder than prescribed (RIR below ${p.rir - 1}).`);
+  if (top && !rirKnown && prog.strategy !== 'rep') hold.push('RIR was not recorded for every working set, so load progression is not confirmed. Record RIR before increasing the load.');
   const flags: string[] = consistent ? ['consistent-underperformance'] : [];
   const notes: string[] = r.level === 'moderate' ? [`Minor recovery flags (${r.negatives.join(', ')}); not enough on their own to change the plan.`] : r.level === 'unknown' ? ['No check-in today, so readiness was not considered.'] : [];
 
@@ -75,7 +81,7 @@ export function recommend(c: Ctx): Rec {
     reasons = [top ? `You reached the top of your rep range (${p.repMax}) on every working set last time (${fmt(last)}).` : `You hit your rep minimum on every set last time (${fmt(last)}) and your strategy prioritises load.`, 'RIR stayed on target.', ...(r.level === 'good' ? ['You reported good readiness.'] : notes)];
     heuristics = ['Raise the load once the top of the range is reached on all sets at the prescribed RIR, then work back up the range.'];
     research = ['overload'];
-    targets = Array.from({ length: p.sets }, () => ({ weight: null, repMin: p.repMin, repMax: Math.min(p.repMin + 1, p.repMax) }));
+    targets = Array.from({ length: p.sets }, (_, i) => ({ weight: c.step !== undefined && Number.isFinite(c.step) && c.step > 0 ? Math.round((last[Math.min(i, last.length - 1)].weight + c.step) * 100) / 100 : null, repMin: p.repMin, repMax: Math.min(p.repMin + 1, p.repMax) }));
   } else if (top && prog.strategy === 'rep') {
     action = 'maintain'; summary = 'Hold the load and reps. Your strategy prioritises reps.';
     reasons = [`You are at the top of your rep range (${fmt(last)}).`, 'To progress further, widen the rep range in the template or switch the mesocycle strategy.'];
@@ -89,29 +95,31 @@ export function recommend(c: Ctx): Rec {
   }
 
   let sets = p.sets; let setsChange: Rec['setsChange'] = 'none';
-  if (c.muscleVolumePlan) {
-    if (prog.volume?.deloadLastWeek && c.totalWeeks > 1 && c.weekIndex === c.totalWeeks - 1) {
-      sets = Math.max(1, Math.round(p.sets / 2)); setsChange = 'deload'; reasons.push(`Deload week: sets reduced from ${p.sets} to ${sets}.`);
-    } else {
-      const extra = hold.length ? 0 : Math.max(0, c.muscleVolumePlan.extraSets);
-      if (extra > 0) { sets += extra; setsChange = 'increase'; reasons.push(...c.muscleVolumePlan.reasons); }
-      else if (c.muscleVolumePlan.reasons.length) reasons.push(...c.muscleVolumePlan.reasons);
+  const volumeStrategy = (prog.strategy === 'volume' || prog.strategy === 'hybrid') && prog.volume;
+  const deload = !!volumeStrategy && volumeStrategy.deloadLastWeek && c.totalWeeks > 1 && c.weekIndex === c.totalWeeks - 1;
+  if (deload) {
+    sets = Math.max(1, Math.round(p.sets / 2)); setsChange = 'deload';
+    reasons.push(`Deload week: sets reduced from ${p.sets} to ${sets}.`);
+  } else {
+    const plannedExtra = volumeStrategy ? Math.min(Math.max(0, c.weekIndex * volumeStrategy.weeklySetChange), volumeStrategy.maxExtraSets) : 0;
+    const allowedPlannedExtra = hold.length ? 0 : plannedExtra;
+    const muscleExtra = hold.length ? 0 : Math.max(0, c.muscleVolumePlan?.extraSets ?? 0);
+    sets = p.sets + allowedPlannedExtra + muscleExtra;
+    if (plannedExtra > 0) {
+      if (hold.length) { setsChange = 'held'; reasons.push(`Planned volume increase of ${plannedExtra} set${plannedExtra === 1 ? '' : 's'} held because recovery or performance does not support it.`); }
+      else reasons.push(`Volume plan: +${plannedExtra} set${plannedExtra === 1 ? '' : 's'} this week (prescribed ${p.sets}).`);
     }
-    if (targets.length !== sets) targets = Array.from({ length: sets }, (_, i) => targets[Math.min(i, targets.length - 1)]);
-    heuristics.push('Muscle-specific volume is allocated only where the projected weekly total is below your minimum, and never beyond a configured maximum.');
-    research.push('volume-landmarks', 'volume-dose');
-  } else if ((prog.strategy === 'volume' || prog.strategy === 'hybrid') && prog.volume) {
-    const v = prog.volume;
-    if (v.deloadLastWeek && c.totalWeeks > 1 && c.weekIndex === c.totalWeeks - 1) { sets = Math.max(1, Math.round(p.sets / 2)); setsChange = 'deload'; reasons.push(`Deload week: sets reduced from ${p.sets} to ${sets}.`); }
-    else {
-      const desired = p.sets + Math.min(c.weekIndex * v.weeklySetChange, v.maxExtraSets);
-      if (desired > p.sets) {
-        if (hold.length) { sets = Math.min(desired, last.length); setsChange = 'held'; reasons.push(`Planned sets this week: ${desired}, but volume is held at ${sets} because recovery or performance is not supporting an increase.`); }
-        else { sets = desired; setsChange = 'increase'; reasons.push(`Volume plan: ${sets} sets this week (prescribed ${p.sets}).`); }
-      }
-    }
-    heuristics.push('Volume changes follow your mesocycle plan and are gated by recovery and performance.'); research.push('volume-landmarks', 'volume-dose');
-    if (targets.length !== sets) targets = Array.from({ length: sets }, (_, i) => targets[Math.min(i, targets.length - 1)]);
+    if (muscleExtra > 0) {
+      reasons.push(...(c.muscleVolumePlan?.reasons ?? []));
+      heuristics.push('Muscle-specific volume is allocated only where projected weekly work is below the preferred minimum, while respecting configured maximums.');
+      research.push('volume-landmarks', 'volume-dose');
+    } else if (c.muscleVolumePlan?.reasons.length) reasons.push(...c.muscleVolumePlan.reasons);
+    if (plannedExtra > 0 && !hold.length || muscleExtra > 0) setsChange = 'increase';
   }
+  if (volumeStrategy) {
+    heuristics.push('Volume changes follow the mesocycle plan and are gated by recovery and performance.');
+    research.push('volume-landmarks', 'volume-dose');
+  }
+  if (targets.length !== sets) targets = Array.from({ length: sets }, (_, i) => targets[Math.min(i, targets.length - 1)]);
   return { ...base, action, sets, setsChange, targets, summary, reasons, research: [...new Set(research)], heuristics, flags };
 }
